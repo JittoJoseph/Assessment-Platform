@@ -1,97 +1,58 @@
-"use client";
-
-export const dynamic = "force-dynamic";
-
-import { useState, useEffect } from "react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase-client";
 
-type Quiz = {
-  id: string;
-  title: string;
-  shareable_link: string;
-};
+async function getUser() {
+  const cookieStore = await cookies();
+  const userCookie = cookieStore.get("user")?.value;
 
-export default function AdminDashboard() {
-  const router = useRouter();
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [error, setError] = useState<string>("");
+  if (!userCookie) return null;
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
-      setError("Please sign in first");
-      setLoading(false);
-      return;
-    }
-    const parsedUser = JSON.parse(storedUser);
-    if (parsedUser.role !== "admin") {
-      setError("Admin access required");
-      setLoading(false);
-      return;
-    }
-    setUser(parsedUser);
-    loadQuizzes();
-  }, []);
-
-  const loadQuizzes = async () => {
-    try {
-      const response = await fetch("/api/quizzes");
-      if (!response.ok) throw new Error("Failed to fetch quizzes");
-
-      const data = await response.json();
-      setQuizzes(data);
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/");
-  };
-
-  if (loading)
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-white border border-gray-200 rounded-xl shadow-lg p-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Access Denied
-          </h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => (window.location.href = "/")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-          >
-            Go Home
-          </button>
-        </div>
-      </div>
-    );
+  try {
+    return JSON.parse(userCookie);
+  } catch {
+    return null;
   }
+}
+
+async function getQuizzes() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("quizzes")
+    .select("id, title, shareable_link")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+export default async function AdminDashboard() {
+  const user = await getUser();
+
+  if (!user) {
+    redirect("/");
+  }
+
+  if (user.role !== "admin") {
+    redirect("/");
+  }
+
+  const quizzes = await getQuizzes();
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-          >
-            Logout
-          </button>
+          <form action="/api/auth/logout" method="POST" className="inline">
+            <button
+              type="submit"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              Logout
+            </button>
+          </form>
         </div>
       </div>
 

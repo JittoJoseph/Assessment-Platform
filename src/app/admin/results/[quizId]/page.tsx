@@ -24,22 +24,30 @@ export default function ResultsPage() {
   const [authError, setAuthError] = useState<string>("");
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      setAuthError("Please sign in first");
-      setLoading(false);
-      return;
-    }
+    // Check authentication on client side as backup
+    const checkClientAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/check");
+        if (!response.ok) {
+          setAuthError("Please sign in first");
+          setLoading(false);
+          return;
+        }
+        const data = await response.json();
+        if (data.user?.role !== "admin") {
+          setAuthError("Admin access required");
+          setLoading(false);
+          return;
+        }
+        setUser(data.user);
+        loadResults();
+      } catch {
+        setAuthError("Authentication check failed");
+        setLoading(false);
+      }
+    };
 
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== "admin") {
-      setAuthError("Admin access required");
-      setLoading(false);
-      return;
-    }
-
-    setUser(parsedUser);
-    loadResults();
+    checkClientAuth();
   }, []);
 
   const loadResults = async () => {

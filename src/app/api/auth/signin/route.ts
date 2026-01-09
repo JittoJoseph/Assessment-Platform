@@ -32,7 +32,18 @@ export async function POST(request: NextRequest) {
     // Return user data (without password)
     const { password_hash: _, ...user } = profile
 
-    return NextResponse.json({ user, message: 'Signed in successfully' })
+    const response = NextResponse.json({ user, message: 'Login successful' })
+
+    // Set user cookie
+    response.cookies.set('user', JSON.stringify(user), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/'
+    })
+
+    return response
   } catch (error) {
     console.error('Signin error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -27,17 +27,26 @@ export default function CreateQuiz() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
-      setAuthError("Please sign in first");
-      return;
-    }
-    const parsedUser = JSON.parse(storedUser);
-    if (parsedUser.role !== "admin") {
-      setAuthError("Admin access required");
-      return;
-    }
-    setUser(parsedUser);
+    // Check authentication on client side as backup
+    const checkClientAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/check");
+        if (!response.ok) {
+          setAuthError("Please sign in first");
+          return;
+        }
+        const data = await response.json();
+        if (data.user?.role !== "admin") {
+          setAuthError("Admin access required");
+          return;
+        }
+        setUser(data.user);
+      } catch {
+        setAuthError("Authentication check failed");
+      }
+    };
+
+    checkClientAuth();
   }, []);
 
   const addQuestion = () => {
