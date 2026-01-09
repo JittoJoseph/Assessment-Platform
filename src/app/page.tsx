@@ -6,37 +6,43 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md sm:max-w-lg">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
-            Assessment Platform
-          </h1>
-          <p className="text-base sm:text-lg text-gray-600 px-4">
-            Take assessments with ease.
-          </p>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 z-10">
+        <div className="max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
+          <div className="text-2xl font-bold text-black">Assessment</div>
+          <Link
+            href="/auth"
+            className="text-gray-600 hover:text-black transition-colors font-medium"
+          >
+            Sign in
+          </Link>
         </div>
+      </header>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-6 sm:p-8">
-          <div className="space-y-4">
+      {/* Hero Section */}
+      <main className="flex items-center justify-center min-h-screen px-6">
+        <div className="text-center max-w-4xl mx-auto">
+          <h1 className="text-6xl md:text-7xl font-bold text-black mb-8 leading-tight">
+            Take assessments
+            <br />
+            <span className="text-gray-600">with confidence</span>
+          </h1>
+
+          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+            A modern assessment platform designed for educational institutions.
+          </p>
+
+          <div className="flex justify-center">
             <Link
               href="/auth"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors block text-center"
+              className="bg-black text-white px-12 py-4 rounded-full font-semibold text-lg hover:bg-gray-800 transition-colors"
             >
-              Sign In / Sign Up
+              Get started
             </Link>
-
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Admin access:{" "}
-                <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                  /admin
-                </code>
-              </p>
-            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
