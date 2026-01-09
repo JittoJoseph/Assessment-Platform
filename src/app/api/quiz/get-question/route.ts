@@ -52,10 +52,8 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     question: {
       id: question.id,
-      question_en: question.question_en,
-      question_ml: question.question_ml,
-      options_en: question.options_en,
-      options_ml: question.options_ml,
+      question: question.question,
+      options: question.options,
       time_limit_seconds: question.time_limit_seconds,
       marks: question.marks
     }

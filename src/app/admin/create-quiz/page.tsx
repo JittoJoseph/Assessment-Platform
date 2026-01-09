@@ -6,10 +6,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type QuestionForm = {
-  question_en: string;
-  question_ml: string;
-  options_en: string[];
-  options_ml: string[];
+  question: string;
+  options: string[];
   correct_answer: number;
   time_limit_seconds: number;
   marks: number;
@@ -53,10 +51,8 @@ export default function CreateQuiz() {
     setQuestions([
       ...questions,
       {
-        question_en: "",
-        question_ml: "",
-        options_en: ["", "", "", ""],
-        options_ml: ["", "", "", ""],
+        question: "",
+        options: ["", "", "", ""],
         correct_answer: 0,
         time_limit_seconds: 60,
         marks: 1,
@@ -66,12 +62,9 @@ export default function CreateQuiz() {
 
   const updateQuestion = (index: number, field: string, value: any) => {
     const newQuestions = [...questions];
-    if (field.startsWith("options_en")) {
+    if (field.startsWith("options")) {
       const optIndex = parseInt(field.split(".")[1]);
-      newQuestions[index].options_en[optIndex] = value;
-    } else if (field.startsWith("options_ml")) {
-      const optIndex = parseInt(field.split(".")[1]);
-      newQuestions[index].options_ml[optIndex] = value;
+      newQuestions[index].options[optIndex] = value;
     } else {
       (newQuestions[index] as any)[field] = value;
     }
@@ -221,92 +214,43 @@ export default function CreateQuiz() {
                         Question {index + 1}
                       </h3>
 
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Question (English)
-                          </label>
-                          <textarea
-                            value={q.question_en}
-                            onChange={(e) =>
-                              updateQuestion(
-                                index,
-                                "question_en",
-                                e.target.value
-                              )
-                            }
-                            required
-                            rows={3}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Enter question in English"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Question (Malayalam)
-                          </label>
-                          <textarea
-                            value={q.question_ml}
-                            onChange={(e) =>
-                              updateQuestion(
-                                index,
-                                "question_ml",
-                                e.target.value
-                              )
-                            }
-                            required
-                            rows={3}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Enter question in Malayalam"
-                          />
-                        </div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Question
+                        </label>
+                        <textarea
+                          value={q.question}
+                          onChange={(e) =>
+                            updateQuestion(index, "question", e.target.value)
+                          }
+                          required
+                          rows={3}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Enter your question"
+                        />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Options (English)
-                          </label>
-                          {q.options_en.map((opt, optIndex) => (
-                            <input
-                              key={optIndex}
-                              type="text"
-                              value={opt}
-                              onChange={(e) =>
-                                updateQuestion(
-                                  index,
-                                  `options_en.${optIndex}`,
-                                  e.target.value
-                                )
-                              }
-                              placeholder={`Option ${optIndex + 1}`}
-                              required
-                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
-                            />
-                          ))}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Options (Malayalam)
-                          </label>
-                          {q.options_ml.map((opt, optIndex) => (
-                            <input
-                              key={optIndex}
-                              type="text"
-                              value={opt}
-                              onChange={(e) =>
-                                updateQuestion(
-                                  index,
-                                  `options_ml.${optIndex}`,
-                                  e.target.value
-                                )
-                              }
-                              placeholder={`Option ${optIndex + 1}`}
-                              required
-                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
-                            />
-                          ))}
-                        </div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Options
+                        </label>
+                        {q.options.map((opt, optIndex) => (
+                          <input
+                            key={optIndex}
+                            type="text"
+                            value={opt}
+                            onChange={(e) =>
+                              updateQuestion(
+                                index,
+                                `options.${optIndex}`,
+                                e.target.value
+                              )
+                            }
+                            placeholder={`Option ${optIndex + 1}`}
+                            required
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+                          />
+                        ))}
                       </div>
 
                       <div className="grid grid-cols-4 gap-4">
