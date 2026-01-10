@@ -39,6 +39,8 @@ export default function QuizPage() {
       const authData = await authResponse.json();
 
       if (!authData.authenticated) {
+        // Store the current URL for redirect after login
+        localStorage.setItem("redirectAfterLogin", window.location.href);
         router.push("/auth");
         return;
       }

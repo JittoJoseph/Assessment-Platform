@@ -39,8 +39,12 @@ export default function AuthForm() {
       // Store user in localStorage
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Redirect to home page
-      window.location.href = "/";
+      // Check for redirect URL
+      const redirectUrl = localStorage.getItem("redirectAfterLogin");
+      localStorage.removeItem("redirectAfterLogin"); // Clean up
+
+      // Redirect to intended page or home
+      window.location.href = redirectUrl || "/";
     } catch (err: any) {
       setError(err.message);
     } finally {
