@@ -1,74 +1,126 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
-export default function CreateQuiz() {
+export default function EditQuiz() {
+  const { quizId } = useParams();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [error, setError] = useState("");
+
+  // Form state
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [authError, setAuthError] = useState("");
-  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Check authentication on client side as backup
-    const checkClientAuth = async () => {
-      try {
-        const response = await fetch("/api/auth/check");
-        if (!response.ok) {
-          setAuthError("Please sign in first");
-          return;
-        }
-        const data = await response.json();
-        if (data.user?.role !== "admin") {
-          setAuthError("Admin access required");
-          return;
-        }
-        setUser(data.user);
-      } catch {
-        setAuthError("Authentication check failed");
-      }
-    };
+    checkAuthAndLoadQuiz();
+  }, [quizId]);
 
-    checkClientAuth();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
+  const checkAuthAndLoadQuiz = async () => {
     try {
-      const response = await fetch("/api/create-quiz-basic", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          startTime: `${startDate}T${startTime}`,
-          endTime: `${endDate}T${endTime}`,
-          userId: user.id,
-        }),
-      });
+      // Check authentication
+      const authResponse = await fetch("/api/auth/check");
+      if (!authResponse.ok) {
+        setAuthError("Please sign in first");
+        setLoading(false);
+        return;
+      }
+      const authData = await authResponse.json();
+      if (authData.user?.role !== "admin") {
+        setAuthError("Admin access required");
+        setLoading(false);
+        return;
+      }
 
-      if (!response.ok) throw new Error("Failed to create quiz");
+      // Load quiz data
+      await loadQuizData();
+    } catch (error) {
+      setAuthError("Authentication check failed");
+      setLoading(false);
+    }
+  };
+
+  const loadQuizData = async () => {
+    try {
+      const response = await fetch(`/api/quizzes/${quizId}`);
+      if (!response.ok) throw new Error("Failed to load quiz");
 
       const data = await response.json();
-      router.push(`/admin/quiz/${data.quiz.id}/questions`);
-    } catch (err: any) {
-      setError(err.message);
+      const quiz = data.quiz;
+
+      setTitle(quiz.title);
+      // Split datetime into date and time components
+      const startDateTime = new Date(quiz.start_time);
+      const endDateTime = new Date(quiz.end_time);
+
+      setStartDate(startDateTime.toISOString().split("T")[0]);
+      setStartTime(startDateTime.toTimeString().slice(0, 5));
+      setEndDate(endDateTime.toISOString().split("T")[0]);
+      setEndTime(endDateTime.toTimeString().slice(0, 5));
+    } catch (error) {
+      setError("Failed to load quiz data");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!title.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    if (
+      new Date(`${startDate}T${startTime}`) >= new Date(`${endDate}T${endTime}`)
+    ) {
+      setError("End time must be after start time");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/quizzes/${quizId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          startTime: `${startDate}T${startTime}`,
+          endTime: `${endDate}T${endTime}`,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update quiz");
+
+      router.push("/admin");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (authError) {
     return (
@@ -90,7 +142,7 @@ export default function CreateQuiz() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,7 +168,7 @@ export default function CreateQuiz() {
                 <span className="ml-1 text-sm font-medium">Back</span>
               </button>
               <h1 className="text-xl font-semibold text-gray-900">
-                Create Assessment
+                Edit Assessment
               </h1>
             </div>
           </div>
@@ -124,7 +176,7 @@ export default function CreateQuiz() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
         <div className="max-w-lg mx-auto">
           {/* Form */}
           <div className="bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-sm">
@@ -201,43 +253,51 @@ export default function CreateQuiz() {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-black text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                    Create Assessment
-                  </>
-                )}
-              </button>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => router.push("/admin")}
+                  className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 bg-black text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
           </div>
 
           {/* Info */}
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
-              After creating the assessment, you'll be able to add questions and
-              manage them individually.
+              Changes will be reflected immediately for all users.
             </p>
           </div>
         </div>

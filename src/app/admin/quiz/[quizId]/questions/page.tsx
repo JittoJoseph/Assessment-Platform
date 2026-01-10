@@ -26,10 +26,9 @@ export default function ManageQuestions() {
   // Form state for new question
   const [showAddForm, setShowAddForm] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
-  const [newOptions, setNewOptions] = useState(["", "", "", ""]);
+  const [newOptions, setNewOptions] = useState(["", ""]);
   const [correctAnswer, setCorrectAnswer] = useState(0);
   const [timeLimit, setTimeLimit] = useState(60);
-  const [marks, setMarks] = useState(1);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -101,7 +100,6 @@ export default function ManageQuestions() {
           options: newOptions,
           correct_answer: correctAnswer,
           time_limit_seconds: timeLimit,
-          marks,
         }),
       });
 
@@ -109,10 +107,9 @@ export default function ManageQuestions() {
 
       // Reset form
       setNewQuestion("");
-      setNewOptions(["", "", "", ""]);
+      setNewOptions(["", ""]);
       setCorrectAnswer(0);
       setTimeLimit(60);
-      setMarks(1);
       setShowAddForm(false);
 
       // Reload questions
@@ -175,15 +172,15 @@ export default function ManageQuestions() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <button
                 onClick={() => router.push("/admin")}
-                className="mr-4 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-4"
               >
                 <svg
                   className="w-5 h-5"
@@ -198,25 +195,36 @@ export default function ManageQuestions() {
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
+                <span className="ml-1 text-sm font-medium">Back</span>
               </button>
-              <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">A</span>
-              </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">
-                  Manage Questions
+                  Questions
                 </h1>
                 {quiz && <p className="text-sm text-gray-600">{quiz.title}</p>}
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                 {questions.length} questions
               </span>
               <button
                 onClick={() => setShowAddForm(true)}
-                className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+                className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex items-center"
               >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
                 Add Question
               </button>
             </div>
@@ -327,12 +335,18 @@ export default function ManageQuestions() {
       {/* Add Question Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Header */}
+            <div className="px-8 py-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Add New Question
-                </h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Add New Question
+                  </h2>
+                  <p className="text-gray-600 mt-1">
+                    Create a question with multiple choice options
+                  </p>
+                </div>
                 <button
                   onClick={() => setShowAddForm(false)}
                   className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -354,57 +368,109 @@ export default function ManageQuestions() {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Question */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+            {/* Content */}
+            <div className="px-8 py-8">
+              {/* Question Section */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
                   Question
                 </label>
                 <textarea
                   value={newQuestion}
                   onChange={(e) => setNewQuestion(e.target.value)}
-                  rows={3}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black placeholder-gray-900"
-                  placeholder="Enter your question"
+                  rows={4}
+                  className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent text-black placeholder-gray-500 resize-none text-base"
+                  placeholder="Enter your question here... (Supports English and Malayalam)"
                 />
               </div>
 
-              {/* Options */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-900">
-                    Options
+              {/* Options Section */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <label className="block text-sm font-semibold text-gray-900">
+                    Answer Options
                   </label>
                   <button
                     onClick={addOption}
-                    className="text-sm text-black hover:text-gray-600 font-medium"
+                    disabled={newOptions.length >= 6}
+                    className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
-                    + Add Option
+                    <svg
+                      className="w-4 h-4 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Add Option
                   </button>
                 </div>
+
                 <div className="space-y-3">
                   {newOptions.map((option, index) => (
-                    <div key={index} className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        name="correctAnswer"
-                        checked={correctAnswer === index}
-                        onChange={() => setCorrectAnswer(index)}
-                        className="w-4 h-4 text-black focus:ring-black"
-                      />
-                      <input
-                        type="text"
-                        value={option}
-                        onChange={(e) => updateOption(index, e.target.value)}
-                        placeholder={`Option ${String.fromCharCode(
-                          65 + index
-                        )}`}
-                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black placeholder-gray-900"
-                      />
+                    <div key={index} className="flex items-center space-x-4">
+                      {/* Radio Button */}
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          name="correctAnswer"
+                          checked={correctAnswer === index}
+                          onChange={() => setCorrectAnswer(index)}
+                          className="w-5 h-5 text-black focus:ring-black border-gray-300"
+                        />
+                        <span className="ml-3 text-sm font-medium text-gray-700 min-w-[24px]">
+                          {String.fromCharCode(65 + index)}
+                        </span>
+                      </div>
+
+                      {/* Option Input */}
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={option}
+                          onChange={(e) => updateOption(index, e.target.value)}
+                          placeholder={`Option ${String.fromCharCode(
+                            65 + index
+                          )}`}
+                          className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black placeholder-gray-500 text-base ${
+                            correctAnswer === index
+                              ? "border-green-300 bg-green-50"
+                              : "border-gray-300"
+                          }`}
+                        />
+                      </div>
+
+                      {/* Correct Answer Badge */}
+                      {correctAnswer === index && (
+                        <div className="flex items-center text-green-600">
+                          <svg
+                            className="w-5 h-5 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          <span className="text-sm font-medium">Correct</span>
+                        </div>
+                      )}
+
+                      {/* Remove Button */}
                       {newOptions.length > 2 && (
                         <button
                           onClick={() => removeOption(index)}
-                          className="p-2 text-red-500 hover:text-red-700"
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <svg
                             className="w-4 h-4"
@@ -424,54 +490,90 @@ export default function ManageQuestions() {
                     </div>
                   ))}
                 </div>
+
+                {/* Helper Text */}
+                <p className="text-sm text-gray-600 mt-3">
+                  Select the radio button next to the correct answer. You can
+                  add up to 6 options.
+                </p>
               </div>
 
-              {/* Settings */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Time Limit (seconds)
-                  </label>
+              {/* Time Limit Section */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  Time Limit
+                </label>
+                <div className="flex items-center space-x-4">
                   <input
-                    type="number"
-                    value={timeLimit}
-                    onChange={(e) =>
-                      setTimeLimit(parseInt(e.target.value) || 60)
-                    }
+                    type="range"
                     min="10"
                     max="300"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                    step="10"
+                    value={timeLimit}
+                    onChange={(e) => setTimeLimit(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                   />
+                  <div className="flex items-center space-x-2 min-w-[120px]">
+                    <input
+                      type="number"
+                      value={timeLimit}
+                      onChange={(e) =>
+                        setTimeLimit(parseInt(e.target.value) || 60)
+                      }
+                      min="10"
+                      max="300"
+                      className="w-20 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black text-center"
+                    />
+                    <span className="text-sm text-gray-600">seconds</span>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Marks
-                  </label>
-                  <input
-                    type="number"
-                    value={marks}
-                    onChange={(e) => setMarks(parseInt(e.target.value) || 1)}
-                    min="1"
-                    max="10"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black"
-                  />
-                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  Students will have {timeLimit} seconds to answer this
+                  question.
+                </p>
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+            {/* Footer */}
+            <div className="px-8 py-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl flex justify-end space-x-3">
               <button
                 onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                className="px-6 py-2.5 text-gray-700 hover:text-gray-900 font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={addQuestion}
-                disabled={saving}
-                className="bg-black text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  saving ||
+                  !newQuestion.trim() ||
+                  newOptions.some((opt) => !opt.trim())
+                }
+                className="bg-black text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                {saving ? "Saving..." : "Add Question"}
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Add Question
+                  </>
+                )}
               </button>
             </div>
           </div>
