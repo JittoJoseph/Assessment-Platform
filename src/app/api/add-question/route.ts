@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase-client";
 
 export async function POST(request: NextRequest) {
   try {
-    const { quizId, question, options, correct_answer, time_limit_seconds, marks } = await request.json();
+    const { quizId, question, options, correct_answer, time_limit_seconds } = await request.json();
 
     const supabase = createClient();
 
@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
         options,
         correct_answer,
         time_limit_seconds,
-        marks,
       })
       .select()
       .single();

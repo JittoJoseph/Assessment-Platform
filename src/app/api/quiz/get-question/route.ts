@@ -54,8 +54,7 @@ export async function POST(request: NextRequest) {
       id: question.id,
       question: question.question,
       options: question.options,
-      time_limit_seconds: question.time_limit_seconds,
-      marks: question.marks
+      time_limit_seconds: question.time_limit_seconds
     }
   })
 }

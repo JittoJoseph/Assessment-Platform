@@ -32,17 +32,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Question not found' }, { status: 404 })
   }
 
-  // Validate time
-  let is_correct: boolean
-  let marks: number
-  if (time_taken_seconds > question.time_limit_seconds) {
-    // Treat as incorrect
-    is_correct = false
-    marks = 0
-  } else {
-    is_correct = selected_option === question.correct_answer
-    marks = is_correct ? question.marks : 0
-  }
+  // Validate time and correctness
+  const is_correct = time_taken_seconds <= question.time_limit_seconds && selected_option === question.correct_answer
+  const marks = is_correct ? 1 : 0
 
   // Save answer
   const { error } = await supabase
