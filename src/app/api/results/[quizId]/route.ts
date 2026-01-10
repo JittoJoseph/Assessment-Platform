@@ -7,6 +7,8 @@ export async function GET(
 ) {
   try {
     const { quizId } = await params;
+    console.log("Results API called with quizId:", quizId);
+
     const supabase = createClient();
 
     const { data, error } = await supabase
@@ -23,14 +25,19 @@ export async function GET(
           time_taken_seconds,
           is_correct,
           marks_obtained,
-          questions (question_en, question_ml, correct_answer)
+          questions (question, correct_answer)
         )
       `
       )
       .eq("quiz_id", quizId)
       .order("total_score", { ascending: false });
 
-    if (error) throw error;
+    console.log("Supabase query result:", { data: data?.length || 0, error });
+
+    if (error) {
+      console.error("Supabase error:", error);
+      throw error;
+    }
 
     return NextResponse.json(data);
   } catch (error) {
