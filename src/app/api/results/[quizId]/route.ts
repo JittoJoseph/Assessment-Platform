@@ -7,7 +7,6 @@ export async function GET(
 ) {
   try {
     const { quizId } = await params;
-    console.log("Results API called with quizId:", quizId);
 
     const supabase = createClient();
 
@@ -32,16 +31,12 @@ export async function GET(
       .eq("quiz_id", quizId)
       .order("total_score", { ascending: false });
 
-    console.log("Supabase query result:", { data: data?.length || 0, error });
-
     if (error) {
-      console.error("Supabase error:", error);
       throw error;
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching results:", error);
     return NextResponse.json(
       { error: "Failed to fetch results" },
       { status: 500 }

@@ -52,36 +52,21 @@ export default function ResultsPage() {
 
   const loadResults = async () => {
     try {
-      console.log("Loading results for quizId:", quizId);
-
       // First check if quiz exists
       const quizResponse = await fetch(`/api/quizzes/${quizId}`);
       if (!quizResponse.ok) {
-        console.error("Quiz not found:", quizResponse.status);
         throw new Error("Quiz not found");
       }
 
-      const quizData = await quizResponse.json();
-      console.log("Quiz data:", quizData);
-
       const response = await fetch(`/api/results/${quizId}`);
-      console.log("Results API response status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error(
-          "Results API Error:",
-          response.status,
-          response.statusText,
-          errorData
-        );
         throw new Error(
           `Failed to fetch results: ${response.status} ${response.statusText}`
         );
       }
 
       const data = await response.json();
-      console.log("Results API response data:", data);
       setAttempts(data as Attempt[]);
     } catch (err: any) {
       console.error("Error loading results:", err);
