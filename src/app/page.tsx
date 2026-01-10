@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FaLock, FaLink, FaChartBar } from "react-icons/fa";
+import Navbar from "./Navbar";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -20,62 +22,67 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
-          <div className="text-2xl font-bold text-black">Assessment</div>
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <>
-                <span className="text-gray-600">Welcome, {user.full_name}</span>
-                <form
-                  action="/api/auth/logout"
-                  method="POST"
-                  className="inline"
-                >
-                  <button
-                    type="submit"
-                    className="text-gray-600 hover:text-black transition-colors font-medium"
-                  >
-                    Logout
-                  </button>
-                </form>
-              </>
-            ) : (
-              <Link
-                href="/auth"
-                className="text-gray-600 hover:text-black transition-colors font-medium"
-              >
-                Sign in
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar user={user} />
 
       {/* Hero Section */}
-      <main className="flex items-center justify-center min-h-screen px-6">
+      <main className="flex items-center justify-center py-20 px-6 pt-32">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-6xl md:text-7xl font-bold text-black mb-8 leading-tight">
+          <h1 className="text-5xl md:text-6xl font-bold text-black mb-6 leading-tight">
             Take assessments
             <br />
             <span className="text-gray-600">with confidence</span>
           </h1>
 
-          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
-            A modern assessment platform designed for educational institutions.
+          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Private assessments accessible only through secure links. No public
+            listings, complete control.
           </p>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-12">
             <Link
               href="/auth"
-              className="bg-black text-white px-12 py-4 rounded-full font-semibold text-lg hover:bg-gray-800 transition-colors"
+              className="bg-black text-white px-8 py-3 rounded-full font-semibold text-base hover:bg-gray-800 transition-colors"
             >
               Get started
             </Link>
           </div>
         </div>
       </main>
+
+      {/* Features Section */}
+      <section className="pb-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="p-4 flex flex-col items-center text-center">
+              <FaLock className="w-6 h-6 text-black mb-3" />
+              <h3 className="text-base font-semibold text-black mb-2">
+                Private Exams
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Unlisted assessments, accessible only through secure links
+              </p>
+            </div>
+            <div className="p-4 flex flex-col items-center text-center">
+              <FaLink className="w-6 h-6 text-black mb-3" />
+              <h3 className="text-base font-semibold text-black mb-2">
+                Link-Based Access
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Share unique links with authorized participants only
+              </p>
+            </div>
+            <div className="p-4 flex flex-col items-center text-center">
+              <FaChartBar className="w-6 h-6 text-black mb-3" />
+              <h3 className="text-base font-semibold text-black mb-2">
+                Detailed Results
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Comprehensive analytics and performance insights
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
