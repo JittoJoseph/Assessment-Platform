@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import QuizCard from "./QuizCard";
+import AdminManagement from "./AdminManagement";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -183,6 +184,9 @@ export default async function AdminDashboard() {
             )}
           </div>
         </div>
+
+        {/* Admin Management */}
+        <AdminManagement />
       </main>
     </div>
   );
