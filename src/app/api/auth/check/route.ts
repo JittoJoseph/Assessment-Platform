@@ -7,13 +7,13 @@ export async function GET(request: NextRequest) {
     const userCookie = cookieStore.get('user')?.value
 
     if (!userCookie) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      return NextResponse.json({ authenticated: false, error: 'Not authenticated' }, { status: 401 })
     }
 
     const user = JSON.parse(userCookie)
-    return NextResponse.json({ user })
+    return NextResponse.json({ authenticated: true, user })
   } catch (error) {
     console.error('Auth check error:', error)
-    return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    return NextResponse.json({ authenticated: false, error: 'Invalid session' }, { status: 401 })
   }
 }

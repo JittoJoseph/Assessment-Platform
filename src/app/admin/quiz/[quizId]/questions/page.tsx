@@ -8,6 +8,8 @@ import { useParams, useRouter } from "next/navigation";
 type Question = {
   id: string;
   question: string;
+  options: string[];
+  correct_answer: number;
   time_limit_seconds: number;
 };
 
@@ -65,12 +67,6 @@ export default function ManageQuestions() {
 
   const loadQuizData = async () => {
     try {
-      // Load quiz details
-      const quizResponse = await fetch(`/api/quizzes/${quizId}`);
-      if (!quizResponse.ok) throw new Error("Failed to load quiz");
-      const quizData = await quizResponse.json();
-      setQuiz(quizData.quiz);
-
       // Load questions
       const questionsResponse = await fetch(`/api/questions/${quizId}`);
       if (questionsResponse.ok) {
@@ -162,26 +158,14 @@ export default function ManageQuestions() {
   };
 
   const handleEditQuestion = async (question: Question) => {
-    // Fetch full question data including options and correct answer
-    try {
-      const response = await fetch(`/api/question/${question.id}`);
-      if (!response.ok) throw new Error("Failed to load question data");
-
-      const data = await response.json();
-      const fullQuestion = data.question;
-
-      if (fullQuestion) {
-        setNewQuestion(fullQuestion.question);
-        setNewOptions(fullQuestion.options);
-        setCorrectAnswer(fullQuestion.correct_answer);
-        setTimeLimit(fullQuestion.time_limit_seconds);
-        setIsEditing(true);
-        setEditingQuestionId(question.id);
-        setShowAddForm(true);
-      }
-    } catch (error) {
-      alert("Failed to load question for editing");
-    }
+    // Question already has full data including options and correct answer
+    setNewQuestion(question.question);
+    setNewOptions(question.options);
+    setCorrectAnswer(question.correct_answer);
+    setTimeLimit(question.time_limit_seconds);
+    setIsEditing(true);
+    setEditingQuestionId(question.id);
+    setShowAddForm(true);
   };
 
   const handleDeleteQuestion = (questionId: string) => {

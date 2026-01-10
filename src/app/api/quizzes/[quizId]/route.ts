@@ -61,11 +61,28 @@ export async function PUT(
 
     const { title, startTime, endTime } = await request.json();
 
-    if (!title || !startTime || !endTime) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+    // Validate input
+    if (!title?.trim()) {
+      return NextResponse.json({ error: "Quiz title is required" }, { status: 400 });
+    }
+
+    if (title.length > 200) {
+      return NextResponse.json({ error: "Quiz title must be less than 200 characters" }, { status: 400 });
+    }
+
+    if (!startTime || !endTime) {
+      return NextResponse.json({ error: "Start and end times are required" }, { status: 400 });
+    }
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+    }
+
+    if (end <= start) {
+      return NextResponse.json({ error: "End time must be after start time" }, { status: 400 });
     }
 
     const supabase = createClient();
@@ -73,22 +90,16 @@ export async function PUT(
     // Verify the quiz belongs to the user
     const { data: existingQuiz, error: fetchError } = await supabase
       .from("quizzes")
-      .select("user_id")
+      .select("created_by")
       .eq("id", quizId)
       .single();
 
     if (fetchError || !existingQuiz) {
-      return NextResponse.json(
-        { error: "Quiz not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }
 
-    if (existingQuiz.user_id !== user.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 403 }
-      );
+    if (existingQuiz.created_by !== user.id) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
     // Update the quiz

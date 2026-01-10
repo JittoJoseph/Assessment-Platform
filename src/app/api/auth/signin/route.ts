@@ -6,8 +6,23 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+    // Validate input
+    if (!email?.trim()) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+    }
+
+    if (!password) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 })
+    }
+
+    if (email.length > 254) {
+      return NextResponse.json({ error: 'Email is too long' }, { status: 400 })
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
     const supabase = createClient()
@@ -16,7 +31,7 @@ export async function POST(request: NextRequest) {
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('email', email)
+      .eq('email', email.toLowerCase().trim())
       .single()
 
     if (error || !profile) {

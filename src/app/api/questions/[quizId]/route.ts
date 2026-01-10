@@ -11,7 +11,7 @@ export async function GET(
 
     const { data: questions, error } = await supabase
       .from("questions")
-      .select("id, question, time_limit_seconds")
+      .select("id, question, options, correct_answer, time_limit_seconds")
       .eq("quiz_id", quizId)
       .order("id");
 

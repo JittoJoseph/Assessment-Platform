@@ -6,8 +6,53 @@ export async function POST(request: NextRequest) {
   try {
     const { full_name, email, phone, password } = await request.json()
 
-    if (!full_name || !email || !phone || !password) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
+    // Validate input
+    if (!full_name?.trim()) {
+      return NextResponse.json({ error: 'Full name is required' }, { status: 400 })
+    }
+
+    if (full_name.length > 100) {
+      return NextResponse.json({ error: 'Full name must be less than 100 characters' }, { status: 400 })
+    }
+
+    if (!email?.trim()) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+    }
+
+    if (email.length > 254) {
+      return NextResponse.json({ error: 'Email is too long' }, { status: 400 })
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+    }
+
+    if (!phone?.trim()) {
+      return NextResponse.json({ error: 'Phone number is required' }, { status: 400 })
+    }
+
+    if (phone.length > 20) {
+      return NextResponse.json({ error: 'Phone number must be less than 20 characters' }, { status: 400 })
+    }
+
+    // Basic phone validation (allow international formats)
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/
+    if (!phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''))) {
+      return NextResponse.json({ error: 'Invalid phone number format' }, { status: 400 })
+    }
+
+    if (!password) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 })
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters long' }, { status: 400 })
+    }
+
+    if (password.length > 128) {
+      return NextResponse.json({ error: 'Password must be less than 128 characters' }, { status: 400 })
     }
 
     const supabase = createClient()
@@ -16,7 +61,7 @@ export async function POST(request: NextRequest) {
     const { data: existing } = await supabase
       .from('profiles')
       .select('id')
-      .or(`email.eq.${email},phone.eq.${phone}`)
+      .or(`email.eq.${email.toLowerCase().trim()},phone.eq.${phone.trim()}`)
       .single()
 
     if (existing) {
@@ -24,15 +69,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
-    const password_hash = await bcrypt.hash(password, 10)
+    const password_hash = await bcrypt.hash(password, 12)
 
     // Create profile
     const { data: profile, error } = await supabase
       .from('profiles')
       .insert({
-        full_name,
-        email,
-        phone,
+        full_name: full_name.trim(),
+        email: email.toLowerCase().trim(),
+        phone: phone.trim(),
         password_hash,
         role: 'user'
       })
@@ -40,7 +85,8 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Profile creation error:', error)
+      return NextResponse.json({ error: 'Failed to create account' }, { status: 500 })
     }
 
     // Return user data (without password)

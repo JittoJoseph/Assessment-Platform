@@ -52,12 +52,6 @@ export default function ResultsPage() {
 
   const loadResults = async () => {
     try {
-      // First check if quiz exists
-      const quizResponse = await fetch(`/api/quizzes/${quizId}`);
-      if (!quizResponse.ok) {
-        throw new Error("Quiz not found");
-      }
-
       const response = await fetch(`/api/results/${quizId}`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

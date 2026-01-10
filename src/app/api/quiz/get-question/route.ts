@@ -55,6 +55,11 @@ export async function POST(request: NextRequest) {
       question: question.question,
       options: question.options,
       time_limit_seconds: question.time_limit_seconds
+    },
+    attempt: {
+      quiz_title: quiz.title,
+      end_time: quiz.end_time,
+      total_questions: questions.length
     }
   })
 }
