@@ -178,12 +178,12 @@ export default function ResultsPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-8 h-8 bg-blue-50 rounded-md mb-1">
                 <svg
-                  className="w-6 h-6 text-blue-600"
+                  className="w-3.5 h-3.5 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -196,22 +196,20 @@ export default function ResultsPage() {
                   />
                 </svg>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Attempts
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {attempts.length}
-                </p>
-              </div>
+              <p className="text-lg font-bold text-gray-900 leading-none">
+                {attempts.length}
+              </p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide leading-tight">
+                Attempts
+              </p>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
+          <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-8 h-8 bg-green-50 rounded-md mb-1">
                 <svg
-                  className="w-6 h-6 text-green-600"
+                  className="w-3.5 h-3.5 text-green-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -224,20 +222,20 @@ export default function ResultsPage() {
                   />
                 </svg>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Shortlisted</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {shortlisted.length}
-                </p>
-              </div>
+              <p className="text-lg font-bold text-gray-900 leading-none">
+                {shortlisted.length}
+              </p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide leading-tight">
+                Shortlisted
+              </p>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-lg">
+          <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-8 h-8 bg-purple-50 rounded-md mb-1">
                 <svg
-                  className="w-6 h-6 text-purple-600"
+                  className="w-3.5 h-3.5 text-purple-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -250,14 +248,12 @@ export default function ResultsPage() {
                   />
                 </svg>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Highest Score
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {highestScore}
-                </p>
-              </div>
+              <p className="text-lg font-bold text-gray-900 leading-none">
+                {highestScore}
+              </p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide leading-tight">
+                Highest
+              </p>
             </div>
           </div>
         </div>
