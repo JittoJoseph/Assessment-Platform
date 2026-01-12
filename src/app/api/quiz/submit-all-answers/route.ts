@@ -83,14 +83,37 @@ export async function POST(request: NextRequest) {
 
   // Insert or update all answers
   for (const answer of answerInserts) {
-    const { error } = await supabase
+    // Check if answer already exists
+    const { data: existingAnswer } = await supabase
       .from('answers')
-      .upsert(answer, {
-        onConflict: 'attempt_id,question_id'
-      })
+      .select('id')
+      .eq('attempt_id', answer.attempt_id)
+      .eq('question_id', answer.question_id)
+      .single()
+
+    let error
+    if (existingAnswer) {
+      // Update existing answer
+      const { error: updateError } = await supabase
+        .from('answers')
+        .update({
+          selected_option: answer.selected_option,
+          is_correct: answer.is_correct,
+          marks_obtained: answer.marks_obtained,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingAnswer.id)
+      error = updateError
+    } else {
+      // Insert new answer
+      const { error: insertError } = await supabase
+        .from('answers')
+        .insert(answer)
+      error = insertError
+    }
 
     if (error) {
-      console.error('Answer upsert error:', error)
+      console.error('Answer save error:', error)
       return NextResponse.json({ error: 'Failed to save answers' }, { status: 500 })
     }
   }
@@ -111,5 +134,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to complete attempt' }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, total_score: totalScore })
+  return NextResponse.json({ success: true })
 }
