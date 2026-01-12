@@ -44,6 +44,26 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
     }
   };
 
+  const shareQuiz = async () => {
+    const fullUrl = `${baseUrl}/quiz/${quiz.shareable_link}`;
+    const shareData = {
+      title: quiz.title,
+      text: `Take this quiz: ${quiz.title}`,
+      url: fullUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log("Share cancelled or failed");
+      }
+    } else {
+      // Fallback to copying
+      copyToClipboard();
+    }
+  };
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
@@ -127,13 +147,56 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
 
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Share Link</span>
-              <button
-                onClick={copyToClipboard}
-                className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition-colors flex items-center"
-              >
+              <span className="text-sm font-medium text-gray-700">
+                Share Quiz
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={shareQuiz}
+                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-colors flex items-center"
+                  title="Share quiz link"
+                >
+                  <svg
+                    className="w-3.5 h-3.5 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                    />
+                  </svg>
+                  Share
+                </button>
+                <button
+                  onClick={copyToClipboard}
+                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md transition-colors flex items-center"
+                  title="Copy quiz link"
+                >
+                  <svg
+                    className="w-3.5 h-3.5 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="flex items-center">
                 <svg
-                  className="w-3 h-3 mr-1"
+                  className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -142,16 +205,13 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
                   />
                 </svg>
-                {copied ? "Copied!" : "Copy"}
-              </button>
-            </div>
-            <div className="bg-gray-50 border border-gray-200 rounded p-2">
-              <code className="text-xs text-gray-600 break-all">
-                {baseUrl}/quiz/{quiz.shareable_link}
-              </code>
+                <code className="text-sm text-gray-600 break-all font-mono">
+                  {baseUrl}/quiz/{quiz.shareable_link}
+                </code>
+              </div>
             </div>
           </div>
         </div>
