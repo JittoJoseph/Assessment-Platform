@@ -230,7 +230,7 @@ export default function QuizPage() {
               <button
                 onClick={startQuizAttempt}
                 disabled={starting}
-                className="w-full bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="cursor-pointer w-full bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {starting ? (
                   <>

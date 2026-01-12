@@ -10,7 +10,6 @@ type Question = {
   question: string;
   options: string[];
   correct_answer: number;
-  time_limit_seconds: number;
 };
 
 export default function ManageQuestions() {
@@ -33,7 +32,6 @@ export default function ManageQuestions() {
   const [newQuestion, setNewQuestion] = useState("");
   const [newOptions, setNewOptions] = useState(["", ""]);
   const [correctAnswer, setCorrectAnswer] = useState(0);
-  const [timeLimit, setTimeLimit] = useState(60);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -98,7 +96,6 @@ export default function ManageQuestions() {
           question: newQuestion,
           options: newOptions,
           correct_answer: correctAnswer,
-          time_limit_seconds: timeLimit,
         }),
       });
 
@@ -138,7 +135,6 @@ export default function ManageQuestions() {
           question: newQuestion,
           options: newOptions,
           correct_answer: correctAnswer,
-          time_limit_seconds: timeLimit,
         }),
       });
 
@@ -162,7 +158,6 @@ export default function ManageQuestions() {
     setNewQuestion(question.question);
     setNewOptions(question.options);
     setCorrectAnswer(question.correct_answer);
-    setTimeLimit(question.time_limit_seconds);
     setIsEditing(true);
     setEditingQuestionId(question.id);
     setShowAddForm(true);
@@ -201,7 +196,6 @@ export default function ManageQuestions() {
     setNewQuestion("");
     setNewOptions(["", ""]);
     setCorrectAnswer(0);
-    setTimeLimit(60);
     setIsEditing(false);
     setEditingQuestionId(null);
   };
@@ -401,22 +395,6 @@ export default function ManageQuestions() {
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center text-sm font-semibold">
                         {index + 1}
-                      </div>
-                      <div className="flex items-center space-x-1 text-xs text-gray-500">
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <span>{question.time_limit_seconds}s</span>
                       </div>
                     </div>
                     <div className="text-xs text-gray-400 font-medium">
@@ -630,60 +608,6 @@ export default function ManageQuestions() {
                     Select the radio button next to the correct answer. You can
                     add up to 6 options.
                   </p>
-                </div>
-
-                {/* Time Limit Section */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                    <svg
-                      className="w-4 h-4 mr-2 text-gray-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Time Limit
-                  </label>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-1">
-                        <input
-                          type="range"
-                          min="10"
-                          max="300"
-                          step="10"
-                          value={timeLimit}
-                          onChange={(e) =>
-                            setTimeLimit(parseInt(e.target.value))
-                          }
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2 min-w-[100px]">
-                        <input
-                          type="number"
-                          value={timeLimit}
-                          onChange={(e) =>
-                            setTimeLimit(parseInt(e.target.value) || 60)
-                          }
-                          min="10"
-                          max="300"
-                          className="w-16 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-black text-center text-sm"
-                        />
-                        <span className="text-sm text-gray-600">sec</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Students will have {timeLimit} seconds to answer this
-                      question
-                    </p>
-                  </div>
                 </div>
               </div>{" "}
             </div>

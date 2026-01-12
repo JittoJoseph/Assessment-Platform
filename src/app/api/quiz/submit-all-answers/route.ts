@@ -64,9 +64,8 @@ export async function POST(request: NextRequest) {
 
     if (!question) continue
 
-    // Validate time and correctness
-    const is_correct = time_taken_seconds <= question.time_limit_seconds &&
-                      selected_option !== null &&
+    // Validate correctness (time limits removed)
+    const is_correct = selected_option !== null &&
                       selected_option === question.correct_answer
     const marks = is_correct ? 1 : 0
     totalScore += marks
