@@ -2,26 +2,56 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-type Attempt = {
+type User = {
+  full_name: string;
+  role: string;
+};
+
+type Answer = {
+  question_id: string;
+  selected_option: number | null;
+  is_correct: boolean;
+  marks_obtained: number;
+  question: string;
+  correct_answer: number;
+};
+
+type AttemptSummary = {
   id: string;
   total_score: number;
   submitted_at: string;
   profiles: { full_name: string; email: string };
-  answers: any[];
+};
+
+type AttemptDetails = AttemptSummary & {
+  answers: Answer[];
+};
+
+type ResultsResponse = {
+  attempts: AttemptSummary[];
+  totalCount: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 };
 
 export default function ResultsPage() {
   const { quizId } = useParams();
   const router = useRouter();
-  const [attempts, setAttempts] = useState<Attempt[]>([]);
-  const [shortlistCount, setShortlistCount] = useState(20);
+  const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [selectedAttempt, setSelectedAttempt] = useState<Attempt | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [selectedAttempt, setSelectedAttempt] = useState<AttemptDetails | null>(
+    null
+  );
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string>("");
+  const [shortlistCount, setShortlistCount] = useState(20);
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString([], {
@@ -33,6 +63,47 @@ export default function ResultsPage() {
       hour12: true,
     });
   };
+
+  const loadResults = useCallback(
+    async (loadMore = false) => {
+      try {
+        if (loadMore) {
+          setLoadingMore(true);
+        } else {
+          setLoading(true);
+        }
+
+        const offset = loadMore ? attempts.length : 0;
+        const response = await fetch(
+          `/api/results/${quizId}?limit=50&offset=${offset}`
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch results: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data: ResultsResponse = await response.json();
+
+        if (loadMore) {
+          setAttempts((prev) => [...prev, ...data.attempts]);
+        } else {
+          setAttempts(data.attempts);
+        }
+
+        setTotalCount(data.totalCount);
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error("Error loading results:", error);
+        alert(`Error loading results: ${error.message}`);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [quizId, attempts.length]
+  );
 
   useEffect(() => {
     // Check authentication on client side as backup
@@ -59,31 +130,28 @@ export default function ResultsPage() {
     };
 
     checkClientAuth();
-  }, []);
+  }, [loadResults]);
 
-  const loadResults = async () => {
+  const loadAttemptDetails = async (attemptId: string) => {
+    setLoadingDetails(true);
     try {
-      const response = await fetch(`/api/results/${quizId}`);
+      const response = await fetch(`/api/attempt/${attemptId}`);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `Failed to fetch results: ${response.status} ${response.statusText}`
-        );
+        throw new Error("Failed to load attempt details");
       }
-
-      const data = await response.json();
-      setAttempts(data as Attempt[]);
-    } catch (err: any) {
-      console.error("Error loading results:", err);
-      alert(`Error loading results: ${err.message}`);
+      const data: AttemptDetails = await response.json();
+      setSelectedAttempt(data);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error("Error loading attempt details:", error);
+      alert(`Error loading details: ${error.message}`);
     } finally {
-      setLoading(false);
+      setLoadingDetails(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/");
+  const handleAttemptClick = (attempt: AttemptSummary) => {
+    loadAttemptDetails(attempt.id);
   };
 
   // Memoize computed values
@@ -197,10 +265,10 @@ export default function ResultsPage() {
                 </svg>
               </div>
               <p className="text-lg font-bold text-gray-900 leading-none">
-                {attempts.length}
+                {totalCount}
               </p>
               <p className="text-xs text-gray-500 uppercase tracking-wide leading-tight">
-                Attempts
+                Total Attempts
               </p>
             </div>
           </div>
@@ -252,7 +320,7 @@ export default function ResultsPage() {
                 {highestScore}
               </p>
               <p className="text-xs text-gray-500 uppercase tracking-wide leading-tight">
-                Highest
+                Highest Score
               </p>
             </div>
           </div>
@@ -268,13 +336,13 @@ export default function ResultsPage() {
               <input
                 type="number"
                 min="1"
-                max={attempts.length}
+                max={totalCount}
                 value={shortlistCount}
                 onChange={(e) =>
                   setShortlistCount(
                     Math.max(
                       1,
-                      Math.min(attempts.length, parseInt(e.target.value) || 20)
+                      Math.min(totalCount, parseInt(e.target.value) || 20)
                     )
                   )
                 }
@@ -282,8 +350,7 @@ export default function ResultsPage() {
                 placeholder="Enter number of students"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Shows top {shortlistCount} students by score (max:{" "}
-                {attempts.length})
+                Shows top {shortlistCount} students by score (max: {totalCount})
               </p>
             </div>
             <div className="flex gap-2">
@@ -315,7 +382,7 @@ export default function ResultsPage() {
             <h2 className="text-lg font-semibold text-gray-900">
               Top {shortlistCount} Candidates
               <span className="ml-2 text-sm font-normal text-gray-600">
-                ({shortlisted.length} found)
+                ({shortlisted.length} loaded, {totalCount} total)
               </span>
             </h2>
           </div>
@@ -332,7 +399,7 @@ export default function ResultsPage() {
                 <div
                   key={attempt.id}
                   className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => setSelectedAttempt(attempt)}
+                  onClick={() => handleAttemptClick(attempt)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -361,6 +428,45 @@ export default function ResultsPage() {
               ))
             )}
           </div>
+
+          {/* Load More Button */}
+          {attempts.length < totalCount && (
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => loadResults(true)}
+                disabled={loadingMore}
+                className="w-full py-3 px-4 bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
+              >
+                {loadingMore ? (
+                  <div className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Loading more results...
+                  </div>
+                ) : (
+                  `Load More Results (${attempts.length} of ${totalCount})`
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Candidate Details Modal */}
@@ -401,62 +507,98 @@ export default function ResultsPage() {
               {/* Modal Content */}
               <div className="flex-1 overflow-y-auto">
                 <div className="px-6 py-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                    Question Details
-                  </h4>
-                  <div className="space-y-3">
-                    {selectedAttempt.answers.map((answer, index) => (
-                      <div
-                        key={index}
-                        className="border border-gray-200 rounded-md p-3"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <p className="font-medium text-gray-900 flex-1 text-sm leading-snug">
-                            Q{index + 1}: {answer.question}
-                          </p>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-medium ml-3 flex-shrink-0 ${
-                              answer.marks_obtained > 0
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
+                  {loadingDetails ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <svg
+                          className="animate-spin h-8 w-8 text-gray-400 mx-auto mb-4"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <p className="text-gray-500">
+                          Loading attempt details...
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                        Question Details
+                      </h4>
+                      <div className="space-y-3">
+                        {selectedAttempt.answers.map((answer, index) => (
+                          <div
+                            key={index}
+                            className="border border-gray-200 rounded-md p-3"
                           >
-                            {answer.marks_obtained > 0 ? "✓" : "✗"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center space-x-4">
-                            <div>
-                              <span className="text-gray-500">Selected:</span>
+                            <div className="flex items-start justify-between mb-2">
+                              <p className="font-medium text-gray-900 flex-1 text-sm leading-snug">
+                                Q{index + 1}: {answer.question}
+                              </p>
                               <span
-                                className={`ml-1 font-medium ${
-                                  answer.selected_option !== null
-                                    ? "text-blue-600"
-                                    : "text-red-600"
+                                className={`px-2 py-0.5 rounded-full text-xs font-medium ml-3 flex-shrink-0 ${
+                                  answer.marks_obtained > 0
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
                                 }`}
                               >
-                                {answer.selected_option !== null
-                                  ? `Option ${String.fromCharCode(
-                                      65 + answer.selected_option
-                                    )}`
-                                  : "Not answered"}
+                                {answer.marks_obtained > 0 ? "✓" : "✗"}
                               </span>
                             </div>
-                            <div>
-                              <span className="text-gray-500">Correct:</span>
-                              <span className="ml-1 font-medium text-green-600">
-                                Option{" "}
-                                {String.fromCharCode(
-                                  65 + answer.correct_answer
-                                )}
-                              </span>
+
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center space-x-4">
+                                <div>
+                                  <span className="text-gray-500">
+                                    Selected:
+                                  </span>
+                                  <span
+                                    className={`ml-1 font-medium ${
+                                      answer.selected_option !== null
+                                        ? "text-blue-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {answer.selected_option !== null
+                                      ? `Option ${String.fromCharCode(
+                                          65 + answer.selected_option
+                                        )}`
+                                      : "Not answered"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">
+                                    Correct:
+                                  </span>
+                                  <span className="ml-1 font-medium text-green-600">
+                                    Option{" "}
+                                    {String.fromCharCode(
+                                      65 + answer.correct_answer
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

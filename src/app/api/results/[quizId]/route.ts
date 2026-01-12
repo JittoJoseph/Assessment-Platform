@@ -7,6 +7,9 @@ export async function GET(
 ) {
   try {
     const { quizId } = await params;
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
 
     const supabase = createClient();
 
@@ -24,7 +27,19 @@ export async function GET(
       );
     }
 
-    // Fetch attempts with user profiles
+    // Get total count of completed attempts
+    const { count: totalCount, error: countError } = await supabase
+      .from("attempts")
+      .select("*", { count: "exact", head: true })
+      .eq("quiz_id", quizId)
+      .eq("is_completed", true);
+
+    if (countError) {
+      console.error("Database error counting attempts:", countError);
+      throw countError;
+    }
+
+    // Fetch paginated attempts with user profiles (only summary data)
     const { data: attemptsData, error: attemptsError } = await supabase
       .from("attempts")
       .select(`
@@ -38,74 +53,22 @@ export async function GET(
       `)
       .eq("quiz_id", quizId)
       .eq("is_completed", true)
-      .order("total_score", { ascending: false });
+      .order("total_score", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (attemptsError) {
       console.error("Database error fetching attempts:", attemptsError);
       throw attemptsError;
     }
 
-    if (!attemptsData || attemptsData.length === 0) {
-      return NextResponse.json([]);
-    }
-
-    // Get all attempt IDs
-    const attemptIds = attemptsData.map(attempt => attempt.id);
-
-    // Fetch answers for all attempts
-    const { data: answersData, error: answersError } = await supabase
-      .from("answers")
-      .select(`
-        attempt_id,
-        question_id,
-        selected_option,
-        is_correct,
-        marks_obtained
-      `)
-      .in("attempt_id", attemptIds);
-
-    if (answersError) {
-      console.error("Database error fetching answers:", answersError);
-      throw answersError;
-    }
-
-    // Get all question IDs that were answered
-    const questionIds = [...new Set(answersData?.map(a => a.question_id) || [])];
-
-    // Fetch question details
-    const { data: questionsData, error: questionsError } = await supabase
-      .from("questions")
-      .select("id, question, correct_answer")
-      .in("id", questionIds);
-
-    if (questionsError) {
-      console.error("Database error fetching questions:", questionsError);
-      throw questionsError;
-    }
-
-    // Create question lookup map
-    const questionMap = new Map();
-    questionsData?.forEach(q => {
-      questionMap.set(q.id, { question: q.question, correct_answer: q.correct_answer });
-    });
-
-    // Combine the data
-    const results = attemptsData.map(attempt => ({
-      id: attempt.id,
-      total_score: attempt.total_score,
-      submitted_at: attempt.submitted_at,
-      profiles: attempt.profiles,
-      answers: answersData
-        ?.filter(answer => answer.attempt_id === attempt.id)
-        .map(answer => ({
-          question_id: answer.question_id,
-          selected_option: answer.selected_option,
-          is_correct: answer.is_correct,
-          marks_obtained: answer.marks_obtained,
-          question: questionMap.get(answer.question_id)?.question || "",
-          correct_answer: questionMap.get(answer.question_id)?.correct_answer || 0
-        })) || []
-    }));
+    // Return summary data only - no detailed answers
+    const results = {
+      attempts: attemptsData || [],
+      totalCount: totalCount || 0,
+      limit,
+      offset,
+      hasMore: (offset + limit) < (totalCount || 0)
+    };
 
     return NextResponse.json(results);
   } catch (error) {
