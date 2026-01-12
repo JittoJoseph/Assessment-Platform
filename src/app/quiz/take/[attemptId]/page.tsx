@@ -19,7 +19,6 @@ interface Quiz {
 interface Answer {
   question_id: string;
   selected_option: number | null;
-  time_taken_seconds: number;
   timestamp: number;
 }
 
@@ -167,7 +166,6 @@ export default function TakeQuizPage() {
     const answer: Answer = {
       question_id: currentQuestion.id,
       selected_option: selectedOption,
-      time_taken_seconds: 0, // Time limits removed
       timestamp: Date.now(),
     };
 

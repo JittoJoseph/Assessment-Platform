@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
 
     // Validate answer data
     const selected_option = typeof answer.selected_option === 'number' ? answer.selected_option : null
-    const time_taken_seconds = typeof answer.time_taken_seconds === 'number' ? Math.max(0, answer.time_taken_seconds) : 0
 
     // Get question to validate
     const { data: question } = await supabase
@@ -74,7 +73,6 @@ export async function POST(request: NextRequest) {
       attempt_id,
       question_id: answer.question_id,
       selected_option,
-      time_taken_seconds,
       is_correct,
       marks_obtained: marks
     })

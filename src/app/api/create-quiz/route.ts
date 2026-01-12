@@ -83,10 +83,6 @@ export async function POST(request: NextRequest) {
       if (typeof q.correct_answer !== 'number' || q.correct_answer < 0 || q.correct_answer >= q.options.length) {
         return NextResponse.json({ error: `Question ${i + 1}: Invalid correct answer index` }, { status: 400 });
       }
-
-      if (typeof q.time_limit_seconds !== 'number' || q.time_limit_seconds < 10 || q.time_limit_seconds > 300) {
-        return NextResponse.json({ error: `Question ${i + 1}: Time limit must be between 10-300 seconds` }, { status: 400 });
-      }
     }
 
     const supabase = createClient();
@@ -114,8 +110,7 @@ export async function POST(request: NextRequest) {
       quiz_id: quiz.id,
       question: q.question.trim(),
       options: q.options.map((opt: string) => opt.trim()),
-      correct_answer: q.correct_answer,
-      time_limit_seconds: q.time_limit_seconds
+      correct_answer: q.correct_answer
     }));
 
     const { error: questionsError } = await supabase

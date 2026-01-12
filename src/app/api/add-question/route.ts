@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const { quizId, question, options, correct_answer, time_limit_seconds } = await request.json();
+    const { quizId, question, options, correct_answer } = await request.json();
 
     // Validate input
     if (!quizId) {
@@ -49,10 +49,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid correct answer index" }, { status: 400 });
     }
 
-    if (typeof time_limit_seconds !== 'number' || time_limit_seconds < 10 || time_limit_seconds > 300) {
-      return NextResponse.json({ error: "Time limit must be between 10-300 seconds" }, { status: 400 });
-    }
-
     const supabase = createClient();
 
     // Verify quiz exists (admins can add questions to any quiz)
@@ -74,7 +70,6 @@ export async function POST(request: NextRequest) {
         question: question.trim(),
         options: options.map((opt: string) => opt.trim()),
         correct_answer,
-        time_limit_seconds,
       })
       .select()
       .single();

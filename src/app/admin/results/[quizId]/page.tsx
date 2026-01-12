@@ -455,12 +455,6 @@ export default function ResultsPage() {
                           </div>
                           <div className="flex justify-between">
                             <span className="font-medium text-gray-600">
-                              Time Taken:
-                            </span>
-                            <span>{answer.time_taken_seconds}s</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">
                               Points:
                             </span>
                             <span

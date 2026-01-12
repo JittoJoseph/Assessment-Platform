@@ -21,7 +21,6 @@ export async function GET(
         answers (
           question_id,
           selected_option,
-          time_taken_seconds,
           is_correct,
           marks_obtained,
           questions (question, correct_answer)

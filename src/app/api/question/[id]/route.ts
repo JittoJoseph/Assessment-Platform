@@ -52,7 +52,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { question, options, correct_answer, time_limit_seconds } = await request.json();
+    const { question, options, correct_answer } = await request.json();
 
     // Validate input
     if (!question?.trim()) {
@@ -80,10 +80,6 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid correct answer index" }, { status: 400 });
     }
 
-    if (typeof time_limit_seconds !== 'number' || time_limit_seconds < 10 || time_limit_seconds > 300) {
-      return NextResponse.json({ error: "Time limit must be between 10-300 seconds" }, { status: 400 });
-    }
-
     const supabase = createClient();
 
     // Verify question exists (admins can edit questions for any quiz)
@@ -104,7 +100,6 @@ export async function PUT(
         question: question.trim(),
         options: options.map((opt: string) => opt.trim()),
         correct_answer,
-        time_limit_seconds,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)

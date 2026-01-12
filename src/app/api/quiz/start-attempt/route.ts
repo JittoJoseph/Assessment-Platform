@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     // Get questions for the quiz
     const { data: questions } = await supabase
       .from('questions')
-      .select('id, question, options, time_limit_seconds')
+      .select('id, question, options')
       .eq('quiz_id', quiz.id)
       .order('id')
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       // Get questions for the quiz
       const { data: questions } = await supabase
         .from('questions')
-        .select('id, question, options, time_limit_seconds')
+        .select('id, question, options')
         .eq('quiz_id', quiz.id)
         .order('id')
 
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
   // Get all questions for the quiz
   const { data: questions } = await supabase
     .from('questions')
-    .select('id, question, options, time_limit_seconds')
+    .select('id, question, options')
     .eq('quiz_id', quiz.id)
     .order('id')
 

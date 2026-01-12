@@ -53,8 +53,7 @@ export async function POST(request: NextRequest) {
     question: {
       id: question.id,
       question: question.question,
-      options: question.options,
-      time_limit_seconds: question.time_limit_seconds
+      options: question.options
     },
     attempt: {
       quiz_title: quiz.title,
@@ -85,7 +84,6 @@ async function autoSubmit(supabase: any, attempt_id: string) {
       attempt_id,
       question_id: q.id,
       selected_option: null,
-      time_taken_seconds: q.time_limit_seconds, // or 0?
       is_correct: false,
       marks_obtained: 0
     })
