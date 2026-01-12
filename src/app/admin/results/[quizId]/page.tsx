@@ -400,76 +400,58 @@ export default function ResultsPage() {
 
               {/* Modal Content */}
               <div className="flex-1 overflow-y-auto">
-                <div className="px-6 py-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                <div className="px-6 py-4">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
                     Question Details
                   </h4>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {selectedAttempt.answers.map((answer, index) => (
                       <div
                         key={index}
-                        className="border border-gray-200 rounded-lg p-4"
+                        className="border border-gray-200 rounded-md p-3"
                       >
-                        <div className="flex items-start justify-between mb-3">
-                          <p className="font-medium text-gray-900 flex-1">
-                            Question {index + 1}: {answer.question}
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="font-medium text-gray-900 flex-1 text-sm leading-snug">
+                            Q{index + 1}: {answer.question}
                           </p>
-                          <div className="flex items-center space-x-2 ml-4">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                answer.marks_obtained > 0
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {answer.marks_obtained > 0
-                                ? "Correct"
-                                : "Incorrect"}
-                            </span>
-                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ml-3 flex-shrink-0 ${
+                              answer.marks_obtained > 0
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {answer.marks_obtained > 0 ? "✓" : "✗"}
+                          </span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">
-                              Selected Answer:
-                            </span>
-                            <span
-                              className={
-                                answer.selected_option !== null
-                                  ? "text-blue-600"
-                                  : "text-red-600"
-                              }
-                            >
-                              {answer.selected_option !== null
-                                ? `Option ${String.fromCharCode(
-                                    65 + answer.selected_option
-                                  )}`
-                                : "Not answered"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">
-                              Correct Answer:
-                            </span>
-                            <span className="text-green-600">
-                              Option{" "}
-                              {String.fromCharCode(65 + answer.correct_answer)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium text-gray-600">
-                              Points:
-                            </span>
-                            <span
-                              className={`font-semibold ${
-                                answer.marks_obtained > 0
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {answer.marks_obtained}
-                            </span>
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center space-x-4">
+                            <div>
+                              <span className="text-gray-500">Selected:</span>
+                              <span
+                                className={`ml-1 font-medium ${
+                                  answer.selected_option !== null
+                                    ? "text-blue-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {answer.selected_option !== null
+                                  ? `Option ${String.fromCharCode(
+                                      65 + answer.selected_option
+                                    )}`
+                                  : "Not answered"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Correct:</span>
+                              <span className="ml-1 font-medium text-green-600">
+                                Option{" "}
+                                {String.fromCharCode(
+                                  65 + answer.correct_answer
+                                )}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
