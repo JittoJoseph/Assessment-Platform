@@ -163,9 +163,14 @@ export default function TakeQuizPage() {
 
     const currentQuestion = questions[currentQuestionIndex];
 
+    // Allow unselecting by clicking the same option
+    const isCurrentlySelected =
+      currentAnswer?.selected_option === selectedOption;
+    const finalSelectedOption = isCurrentlySelected ? null : selectedOption;
+
     const answer: Answer = {
       question_id: currentQuestion.id,
-      selected_option: selectedOption,
+      selected_option: finalSelectedOption,
       timestamp: Date.now(),
     };
 
@@ -282,57 +287,100 @@ export default function TakeQuizPage() {
   const answeredCount = Object.keys(answers).length;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link
-                href="/"
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-4"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          <div className="py-3">
+            {/* Mobile Layout */}
+            <div className="flex flex-col gap-3 sm:hidden">
+              <div className="flex items-center justify-between">
+                <Link
+                  href="/"
+                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                <span className="ml-1 text-sm font-medium">Exit Quiz</span>
-              </Link>
-              <div className="h-6 w-px bg-gray-200 mx-4"></div>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  <span className="ml-1 text-sm font-medium">Exit</span>
+                </Link>
+                <div className="text-right">
+                  <div className="text-xs font-medium text-gray-900">
+                    {answeredCount}/{questions.length}
+                  </div>
+                  <div className="w-16 bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div
+                      className="bg-gray-600 h-1.5 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${(answeredCount / questions.length) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center">
+                <h1 className="text-base font-semibold text-gray-900 truncate">
                   {quiz?.title}
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs text-gray-600 mt-1">
                   Question {currentQuestionIndex + 1} of {questions.length}
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">
-                {Math.round(progress)}% Complete
+
+            {/* Desktop Layout */}
+            <div className="hidden sm:flex sm:justify-between sm:items-center">
+              <div className="flex items-center">
+                <Link
+                  href="/"
+                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mr-4"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  <span className="ml-1 text-sm font-medium">Exit</span>
+                </Link>
+                <div>
+                  <h1 className="text-lg font-semibold text-gray-900 truncate">
+                    {quiz?.title}
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    Question {currentQuestionIndex + 1} of {questions.length}
+                  </p>
+                </div>
               </div>
-              <div className="w-24 bg-gray-200 rounded-full h-1.5 mt-1">
-                <div
-                  className="bg-black h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <div
-                className={`text-xs mt-2 font-mono ${
-                  timeRemaining < 600000 ? "text-red-600" : "text-gray-600"
-                }`}
-              >
-                {formatTimeRemaining(timeRemaining)}
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-900">
+                  {answeredCount}/{questions.length} answered
+                </div>
+                <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                  <div
+                    className="bg-gray-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(answeredCount / questions.length) * 100}%`,
+                    }}
+                  ></div>
+                </div>
               </div>
             </div>
           </div>
@@ -352,7 +400,9 @@ export default function TakeQuizPage() {
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {questions.map((_, index) => {
-                const isAnswered = answers[questions[index].id];
+                const answer = answers[questions[index].id];
+                const isAnswered = answer && answer.selected_option !== null;
+                const isSkipped = answer && answer.selected_option === null;
                 const isCurrent = index === currentQuestionIndex;
                 return (
                   <button
@@ -360,10 +410,12 @@ export default function TakeQuizPage() {
                     onClick={() => goToQuestion(index)}
                     className={`flex-shrink-0 w-8 h-8 rounded-md font-medium text-xs transition-all duration-200 ${
                       isCurrent
-                        ? "bg-black text-white shadow-sm"
+                        ? "bg-gray-800 text-white shadow-md ring-2 ring-gray-300"
                         : isAnswered
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        ? "bg-gray-600 text-white hover:bg-gray-700"
+                        : isSkipped
+                        ? "bg-gray-300 text-gray-700 border border-gray-400 hover:bg-gray-400"
+                        : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                     }`}
                   >
                     {index + 1}
@@ -375,7 +427,7 @@ export default function TakeQuizPage() {
 
           {/* Question */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-slate-900 mb-6 leading-relaxed">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 leading-relaxed">
               {currentQuestion.question}
             </h2>
 
@@ -387,23 +439,23 @@ export default function TakeQuizPage() {
                   onClick={() => handleAnswer(index)}
                   className={`w-full text-left p-4 border-2 rounded-lg transition-all duration-200 ${
                     currentAnswer?.selected_option === index
-                      ? "border-black bg-black text-white shadow-sm"
+                      ? "border-gray-400 bg-gray-100 text-gray-900 shadow-sm"
                       : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 hover:text-gray-900"
                   } cursor-pointer`}
                 >
-                  <div className="flex items-center">
+                  <div className="flex items-start">
                     <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${
+                      className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center mr-3 mt-0.5 ${
                         currentAnswer?.selected_option === index
-                          ? "border-white bg-white"
+                          ? "border-gray-600 bg-gray-600"
                           : "border-gray-300"
                       }`}
                     >
                       {currentAnswer?.selected_option === index && (
-                        <div className="w-2 h-2 rounded-full bg-black"></div>
+                        <div className="w-2 h-2 rounded-full bg-white"></div>
                       )}
                     </div>
-                    <span className="text-base font-medium">{option}</span>
+                    <span className="text-base leading-relaxed">{option}</span>
                   </div>
                 </button>
               ))}
@@ -437,14 +489,14 @@ export default function TakeQuizPage() {
               <button
                 onClick={handleSubmitClick}
                 disabled={submitting}
-                className="px-8 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="px-8 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {submitting ? "Submitting..." : "Submit Quiz"}
               </button>
             ) : (
               <button
                 onClick={handleNextOrSkip}
-                className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium shadow-sm"
+                className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium shadow-sm"
               >
                 {currentAnswer ? "Next" : "Skip"}
               </button>
@@ -505,7 +557,7 @@ export default function TakeQuizPage() {
               <button
                 onClick={submitAllAnswers}
                 disabled={submitting}
-                className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "Submitting..." : "Submit Quiz"}
               </button>
