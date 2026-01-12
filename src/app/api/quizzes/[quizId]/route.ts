@@ -157,10 +157,10 @@ export async function DELETE(
 
     const supabase = createClient();
 
-    // Verify the quiz belongs to the user
+    // Verify the quiz exists (admins can delete any quiz)
     const { data: existingQuiz, error: fetchError } = await supabase
       .from("quizzes")
-      .select("user_id")
+      .select("id")
       .eq("id", quizId)
       .single();
 
@@ -168,13 +168,6 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Quiz not found" },
         { status: 404 }
-      );
-    }
-
-    if (existingQuiz.user_id !== user.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 403 }
       );
     }
 

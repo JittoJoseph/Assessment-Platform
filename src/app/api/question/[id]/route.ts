@@ -145,26 +145,15 @@ export async function DELETE(
     const { id } = await params;
     const supabase = createClient();
 
-    // Verify question exists and user owns the quiz
+    // Verify question exists (admins can delete questions for any quiz)
     const { data: existingQuestion, error: fetchError } = await supabase
       .from("questions")
-      .select("quiz_id")
+      .select("id")
       .eq("id", id)
       .single();
 
     if (fetchError || !existingQuestion) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
-    }
-
-    // Check quiz ownership
-    const { data: quiz, error: quizError } = await supabase
-      .from("quizzes")
-      .select("created_by")
-      .eq("id", existingQuestion.quiz_id)
-      .single();
-
-    if (quizError || !quiz || quiz.created_by !== user.id) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
     // Delete question
