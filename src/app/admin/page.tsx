@@ -23,7 +23,7 @@ async function getQuizzes() {
   const { data, error } = await supabase
     .from("quizzes")
     .select("id, title, shareable_link, start_time, end_time")
-    .order("start_time", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
   return data;

@@ -14,7 +14,10 @@ export async function POST(request: NextRequest) {
   if (attempt_id) {
     const { data: attempt } = await supabase
       .from('attempts')
-      .select('*, quizzes(*)')
+      .select(`
+        *,
+        quizzes!inner (*)
+      `)
       .eq('id', attempt_id)
       .eq('user_id', user_id)
       .single()
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
       .from('questions')
       .select('id, question, options')
       .eq('quiz_id', quiz.id)
-      .order('id')
+      .order('created_at')
 
     return NextResponse.json({
       attempt_id: attempt.id,
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
         .from('questions')
         .select('id, question, options')
         .eq('quiz_id', quiz.id)
-        .order('id')
+        .order('created_at')
 
       return NextResponse.json({
         attempt_id: existing.id,
@@ -138,7 +141,7 @@ export async function POST(request: NextRequest) {
     .from('questions')
     .select('id, question, options')
     .eq('quiz_id', quiz.id)
-    .order('id')
+    .order('created_at')
 
   return NextResponse.json({ 
     attempt_id: attempt.id,

@@ -13,7 +13,7 @@ export async function GET(
       .from("questions")
       .select("id, question, options, correct_answer")
       .eq("quiz_id", quizId)
-      .order("id");
+      .order("created_at");
 
     if (error) {
       return NextResponse.json(

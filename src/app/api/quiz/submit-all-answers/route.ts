@@ -22,7 +22,10 @@ export async function POST(request: NextRequest) {
   // Get attempt
   const { data: attempt } = await supabase
     .from('attempts')
-    .select('*, quizzes(*)')
+    .select(`
+      *,
+      quizzes!inner (*)
+    `)
     .eq('id', attempt_id)
     .eq('user_id', user_id)
     .single()

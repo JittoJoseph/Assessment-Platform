@@ -40,10 +40,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
     }
 
-    if (start <= now) {
-      return NextResponse.json({ error: "Start time must be in the future" }, { status: 400 });
-    }
-
     if (end <= start) {
       return NextResponse.json({ error: "End time must be after start time" }, { status: 400 });
     }
