@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     // Update role to admin
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ role: "admin" })
+      .update({ role: "admin", updated_at: new Date().toISOString() })
       .eq("id", user.id);
 
     if (updateError) {

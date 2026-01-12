@@ -132,10 +132,55 @@ export default function QuizPage() {
 
   const endTime = new Date(quiz.end_time);
   const timeRemaining = Math.max(0, endTime.getTime() - Date.now());
-  const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
-  const minutesRemaining = Math.floor(
-    (timeRemaining % (1000 * 60 * 60)) / (1000 * 60)
-  );
+
+  const plural = (n: number, unit: string) =>
+    `${n} ${unit}${n !== 1 ? "s" : ""}`;
+
+  const formatTimeRemaining = () => {
+    if (timeRemaining <= 0) return "Time's up";
+
+    const totalMinutes = Math.floor(timeRemaining / (1000 * 60));
+    const totalHours = Math.floor(timeRemaining / (1000 * 60 * 60));
+    const totalDays = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+    const totalMonths = Math.floor(totalDays / 30);
+
+    if (totalMonths > 0) {
+      const remainingDays = totalDays % 30;
+      return remainingDays > 0
+        ? `${plural(totalMonths, "month")}, ${plural(
+            remainingDays,
+            "day"
+          )} remaining`
+        : `${plural(totalMonths, "month")} remaining`;
+    }
+
+    if (totalDays > 0) {
+      const remainingHours = totalHours % 24;
+      return remainingHours > 0
+        ? `${plural(totalDays, "day")}, ${remainingHours}h remaining`
+        : `${plural(totalDays, "day")} remaining`;
+    }
+
+    if (totalHours > 0) {
+      const remainingMinutes = totalMinutes % 60;
+      return remainingMinutes > 0
+        ? `${totalHours}h ${remainingMinutes}m remaining`
+        : `${totalHours}h remaining`;
+    }
+
+    return `${totalMinutes}m remaining`;
+  };
+
+  const formatEndTime = () => {
+    return endTime.toLocaleString([], {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -189,15 +234,12 @@ export default function QuizPage() {
                 {quiz.title}
               </h2>
               <p className="text-gray-600 mb-4">
-                {quiz.question_count} questions •{" "}
-                {hoursRemaining > 0
-                  ? `${hoursRemaining}h ${minutesRemaining}m`
-                  : `${minutesRemaining}m`}{" "}
-                remaining
+                {quiz.question_count} questions • {formatTimeRemaining()}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 mb-4">
                 Assessment for {user?.full_name}
               </p>
+              <p className="text-xs text-gray-400">Ends: {formatEndTime()}</p>
             </div>
 
             {/* Instructions */}

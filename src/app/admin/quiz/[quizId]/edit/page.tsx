@@ -55,14 +55,28 @@ export default function EditQuiz() {
       const quiz = data.quiz;
 
       setTitle(quiz.title);
-      // Split datetime into date and time components
+
+      // Parse UTC datetime strings and convert to local date/time inputs
       const startDateTime = new Date(quiz.start_time);
       const endDateTime = new Date(quiz.end_time);
 
-      setStartDate(startDateTime.toISOString().split("T")[0]);
-      setStartTime(startDateTime.toTimeString().slice(0, 5));
-      setEndDate(endDateTime.toISOString().split("T")[0]);
-      setEndTime(endDateTime.toTimeString().slice(0, 5));
+      // Get local date and time values
+      setStartDate(startDateTime.toLocaleDateString("en-CA")); // YYYY-MM-DD format
+      setStartTime(
+        startDateTime.toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      ); // HH:MM format
+      setEndDate(endDateTime.toLocaleDateString("en-CA"));
+      setEndTime(
+        endDateTime.toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      );
     } catch (error) {
       setError("Failed to load quiz data");
     } finally {
@@ -78,9 +92,11 @@ export default function EditQuiz() {
       return;
     }
 
-    if (
-      new Date(`${startDate}T${startTime}`) >= new Date(`${endDate}T${endTime}`)
-    ) {
+    // Create Date objects for validation
+    const startDateTime = new Date(`${startDate}T${startTime}`);
+    const endDateTime = new Date(`${endDate}T${endTime}`);
+
+    if (startDateTime >= endDateTime) {
       setError("End time must be after start time");
       return;
     }
@@ -96,8 +112,8 @@ export default function EditQuiz() {
         },
         body: JSON.stringify({
           title: title.trim(),
-          startTime: `${startDate}T${startTime}`,
-          endTime: `${endDate}T${endTime}`,
+          startTime: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString(),
         }),
       });
 

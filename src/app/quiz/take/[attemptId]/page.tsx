@@ -71,26 +71,44 @@ export default function TakeQuizPage() {
     [params.attemptId]
   );
 
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+
   // Initialize quiz
   useEffect(() => {
     initializeQuiz();
   }, [params.attemptId]);
 
-  // Check quiz end time
+  // Check quiz end time and update timer
   useEffect(() => {
     if (quiz && !completed) {
       const checkEndTime = () => {
         const now = new Date();
         const end = new Date(quiz.end_time);
+        const remaining = Math.max(0, end.getTime() - now.getTime());
+        setTimeRemaining(remaining);
+
         if (now >= end) {
           handleQuizEnd();
         }
       };
 
+      checkEndTime();
       const interval = setInterval(checkEndTime, 1000);
       return () => clearInterval(interval);
     }
   }, [quiz, completed]);
+
+  // Format time remaining
+  const formatTimeRemaining = (ms: number) => {
+    if (ms <= 0) return "00:00:00";
+
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
 
   const initializeQuiz = async () => {
     try {
@@ -310,6 +328,13 @@ export default function TakeQuizPage() {
                   className="bg-black h-1.5 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 ></div>
+              </div>
+              <div
+                className={`text-xs mt-2 font-mono ${
+                  timeRemaining < 600000 ? "text-red-600" : "text-gray-600"
+                }`}
+              >
+                {formatTimeRemaining(timeRemaining)}
               </div>
             </div>
           </div>

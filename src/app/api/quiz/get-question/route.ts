@@ -104,7 +104,8 @@ async function autoSubmit(supabase: any, attempt_id: string) {
     .update({
       submitted_at: new Date().toISOString(),
       total_score: total,
-      is_completed: true
+      is_completed: true,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', attempt_id)
 }

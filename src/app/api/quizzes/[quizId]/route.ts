@@ -87,19 +87,15 @@ export async function PUT(
 
     const supabase = createClient();
 
-    // Verify the quiz belongs to the user
+    // Verify the quiz exists (admins can edit any quiz)
     const { data: existingQuiz, error: fetchError } = await supabase
       .from("quizzes")
-      .select("created_by")
+      .select("id")
       .eq("id", quizId)
       .single();
 
     if (fetchError || !existingQuiz) {
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
-    }
-
-    if (existingQuiz.created_by !== user.id) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
     // Update the quiz

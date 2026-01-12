@@ -23,6 +23,17 @@ export default function ResultsPage() {
   const [user, setUser] = useState<any>(null);
   const [authError, setAuthError] = useState<string>("");
 
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString([], {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
   useEffect(() => {
     // Check authentication on client side as backup
     const checkClientAuth = async () => {
@@ -336,7 +347,7 @@ export default function ResultsPage() {
                         {attempt.total_score}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {new Date(attempt.submitted_at).toLocaleDateString()}
+                        {formatDateTime(attempt.submitted_at)}
                       </div>
                     </div>
                   </div>
@@ -358,7 +369,7 @@ export default function ResultsPage() {
                   </h3>
                   <p className="text-sm text-gray-600">
                     Score: {selectedAttempt.total_score} • Submitted:{" "}
-                    {new Date(selectedAttempt.submitted_at).toLocaleString()}
+                    {formatDateTime(selectedAttempt.submitted_at)}
                   </p>
                 </div>
                 <button

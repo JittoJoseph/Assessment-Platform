@@ -55,19 +55,15 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient();
 
-    // Verify quiz exists and user owns it
+    // Verify quiz exists (admins can add questions to any quiz)
     const { data: quiz, error: quizError } = await supabase
       .from("quizzes")
-      .select("id, created_by")
+      .select("id")
       .eq("id", quizId)
       .single();
 
     if (quizError || !quiz) {
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
-    }
-
-    if (quiz.created_by !== user.id) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
     // Add question

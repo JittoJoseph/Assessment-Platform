@@ -21,6 +21,17 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
     setBaseUrl(process.env.NEXT_PUBLIC_BASE_URL || window.location.origin);
   }, []);
 
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString([], {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
   const copyToClipboard = async () => {
     const fullUrl = `${baseUrl}/quiz/${quiz.shareable_link}`;
 
@@ -91,7 +102,7 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
                 />
               </svg>
               <span className="truncate">
-                Starts: {new Date(quiz.start_time).toLocaleDateString()}
+                Starts: {formatDateTime(quiz.start_time)}
               </span>
             </div>
             <div className="flex items-center text-sm text-gray-600">
@@ -109,7 +120,7 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
                 />
               </svg>
               <span className="truncate">
-                Ends: {new Date(quiz.end_time).toLocaleDateString()}
+                Ends: {formatDateTime(quiz.end_time)}
               </span>
             </div>
           </div>

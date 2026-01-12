@@ -46,6 +46,16 @@ export default function CreateQuiz() {
     setError("");
 
     try {
+      // Create Date objects and convert to ISO strings
+      const startDateTime = new Date(`${startDate}T${startTime}`);
+      const endDateTime = new Date(`${endDate}T${endTime}`);
+
+      if (startDateTime >= endDateTime) {
+        setError("End time must be after start time");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/create-quiz-basic", {
         method: "POST",
         headers: {
@@ -53,9 +63,8 @@ export default function CreateQuiz() {
         },
         body: JSON.stringify({
           title,
-          startTime: `${startDate}T${startTime}`,
-          endTime: `${endDate}T${endTime}`,
-          userId: user.id,
+          startTime: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString(),
         }),
       });
 
