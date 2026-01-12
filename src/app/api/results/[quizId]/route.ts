@@ -37,6 +37,7 @@ export async function GET(
         )
       `)
       .eq("quiz_id", quizId)
+      .eq("is_completed", true)
       .order("total_score", { ascending: false });
 
     if (attemptsError) {
@@ -51,7 +52,7 @@ export async function GET(
     // Get all attempt IDs
     const attemptIds = attemptsData.map(attempt => attempt.id);
 
-    // Fetch answers with question details
+    // Fetch answers for all attempts
     const { data: answersData, error: answersError } = await supabase
       .from("answers")
       .select(`
@@ -59,11 +60,7 @@ export async function GET(
         question_id,
         selected_option,
         is_correct,
-        marks_obtained,
-        questions!inner (
-          question,
-          correct_answer
-        )
+        marks_obtained
       `)
       .in("attempt_id", attemptIds);
 
@@ -71,6 +68,26 @@ export async function GET(
       console.error("Database error fetching answers:", answersError);
       throw answersError;
     }
+
+    // Get all question IDs that were answered
+    const questionIds = [...new Set(answersData?.map(a => a.question_id) || [])];
+
+    // Fetch question details
+    const { data: questionsData, error: questionsError } = await supabase
+      .from("questions")
+      .select("id, question, correct_answer")
+      .in("id", questionIds);
+
+    if (questionsError) {
+      console.error("Database error fetching questions:", questionsError);
+      throw questionsError;
+    }
+
+    // Create question lookup map
+    const questionMap = new Map();
+    questionsData?.forEach(q => {
+      questionMap.set(q.id, { question: q.question, correct_answer: q.correct_answer });
+    });
 
     // Combine the data
     const results = attemptsData.map(attempt => ({
@@ -85,7 +102,8 @@ export async function GET(
           selected_option: answer.selected_option,
           is_correct: answer.is_correct,
           marks_obtained: answer.marks_obtained,
-          questions: answer.questions
+          question: questionMap.get(answer.question_id)?.question || "",
+          correct_answer: questionMap.get(answer.question_id)?.correct_answer || 0
         })) || []
     }));
 

@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 type Attempt = {
@@ -86,9 +86,21 @@ export default function ResultsPage() {
     router.push("/");
   };
 
-  const shortlisted = attempts
-    .sort((a, b) => b.total_score - a.total_score)
-    .slice(0, shortlistCount);
+  // Memoize computed values
+  const shortlisted = useMemo(
+    () =>
+      attempts
+        .slice()
+        .sort((a, b) => b.total_score - a.total_score)
+        .slice(0, shortlistCount),
+    [attempts, shortlistCount]
+  );
+
+  const highestScore = useMemo(
+    () =>
+      attempts.length > 0 ? Math.max(...attempts.map((a) => a.total_score)) : 0,
+    [attempts]
+  );
 
   if (authError) {
     return (
@@ -243,9 +255,7 @@ export default function ResultsPage() {
                   Highest Score
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {attempts.length > 0
-                    ? Math.max(...attempts.map((a) => a.total_score))
-                    : 0}
+                  {highestScore}
                 </p>
               </div>
             </div>
@@ -406,7 +416,7 @@ export default function ResultsPage() {
                       >
                         <div className="flex items-start justify-between mb-3">
                           <p className="font-medium text-gray-900 flex-1">
-                            Question {index + 1}: {answer.questions.question}
+                            Question {index + 1}: {answer.question}
                           </p>
                           <div className="flex items-center space-x-2 ml-4">
                             <span
@@ -448,9 +458,7 @@ export default function ResultsPage() {
                             </span>
                             <span className="text-green-600">
                               Option{" "}
-                              {String.fromCharCode(
-                                65 + answer.questions.correct_answer
-                              )}
+                              {String.fromCharCode(65 + answer.correct_answer)}
                             </span>
                           </div>
                           <div className="flex justify-between">
