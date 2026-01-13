@@ -55,3 +55,44 @@ body {
   border: 2px solid #ffffff;
   box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
+
+/* Hide Google Translate branding and banner */
+.goog-te-banner-frame,
+.goog-te-gadget-icon,
+.goog-logo-link,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+div#goog-gt- {
+  display: none !important;
+}
+
+/* Hide the gadget visually but keep select functional */
+.goog-te-gadget {
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+}
+
+/* Keep the select accessible for JS but hidden */
+.goog-te-combo {
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+.VIpgJd-ZVi9od-ORHb-OEVmcd {
+  display: none !important;
+}
+
+/* Hide the Google Translate attribution bar at top */
+.skiptranslate {
+  display: none !important;
+}
+
+iframe.skiptranslate {
+  display: none !important;
+}

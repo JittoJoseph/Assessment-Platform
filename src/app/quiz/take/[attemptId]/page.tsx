@@ -43,6 +43,100 @@ export default function TakeQuizPage() {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [answersReady, setAnswersReady] = useState(false);
+  const [isTranslated, setIsTranslated] = useState(false);
+  const [translateLoading, setTranslateLoading] = useState(false);
+
+  // Clear any existing translation cookies on mount to prevent auto-translation
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Clear translation cookies
+      document.cookie =
+        "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie =
+        "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" +
+        window.location.hostname;
+      document.cookie =
+        "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." +
+        window.location.hostname;
+    }
+  }, []);
+
+  // Function to load Google Translate script (only when needed)
+  const loadGoogleTranslate = (): Promise<void> => {
+    return new Promise((resolve) => {
+      if ((window as any).google?.translate?.TranslateElement) {
+        resolve();
+        return;
+      }
+
+      (window as any).googleTranslateElementInit = () => {
+        new (window as any).google.translate.TranslateElement(
+          {
+            pageLanguage: "ml",
+            includedLanguages: "en",
+            autoDisplay: false,
+          },
+          "google_translate_element"
+        );
+        // Small delay to ensure element is ready
+        setTimeout(resolve, 500);
+      };
+
+      const script = document.createElement("script");
+      script.src =
+        "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+      script.async = true;
+      document.body.appendChild(script);
+    });
+  };
+
+  // Function to toggle translation
+  const toggleTranslation = async () => {
+    if (typeof window === "undefined") return;
+
+    setTranslateLoading(true);
+
+    try {
+      if (!isTranslated) {
+        // Load Google Translate if not already loaded
+        await loadGoogleTranslate();
+
+        // Wait a bit for the select to be available
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // Use the select dropdown
+        const select = document.querySelector(
+          ".goog-te-combo"
+        ) as HTMLSelectElement;
+        if (select) {
+          select.value = "en";
+          const event = new Event("change", {
+            bubbles: true,
+            cancelable: true,
+          });
+          select.dispatchEvent(event);
+          setIsTranslated(true);
+        }
+      } else {
+        // Reset to original - clear the translation
+        const select = document.querySelector(
+          ".goog-te-combo"
+        ) as HTMLSelectElement;
+        if (select) {
+          // Clear the select value to revert to original language
+          select.value = "";
+          const event = new Event("change", {
+            bubbles: true,
+            cancelable: true,
+          });
+          select.dispatchEvent(event);
+          setIsTranslated(false);
+        }
+      }
+    } finally {
+      setTranslateLoading(false);
+    }
+  };
 
   // Load saved answers from localStorage - returns the answers directly
   const loadSavedAnswers = useCallback((): Record<string, Answer> => {
@@ -310,8 +404,8 @@ export default function TakeQuizPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      {/* Header - marked notranslate to prevent continuous re-translation from timer updates */}
+      <header className="notranslate bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-3">
             {/* Mobile Layout */}
@@ -444,8 +538,8 @@ export default function TakeQuizPage() {
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          {/* Question Navigation */}
-          <div className="mb-6">
+          {/* Question Navigation - notranslate to prevent re-translation */}
+          <div className="notranslate mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-600">Questions</h3>
               <span className="text-sm text-gray-500">
@@ -477,6 +571,48 @@ export default function TakeQuizPage() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Hidden Google Translate Element - use absolute positioning instead of display:none */}
+          <div
+            id="google_translate_element"
+            className="absolute -top-[9999px] -left-[9999px]"
+          ></div>
+
+          {/* Clean Translate Toggle Button */}
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={toggleTranslation}
+              disabled={translateLoading}
+              className={`notranslate flex items-center gap-2 text-sm transition-colors px-3 py-1.5 rounded-lg ${
+                isTranslated
+                  ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              } ${translateLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {translateLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+              ) : (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
+                  />
+                </svg>
+              )}
+              {translateLoading
+                ? "Translating..."
+                : isTranslated
+                ? "Show Original"
+                : "Translate to English"}
+            </button>
           </div>
 
           {/* Question */}
@@ -516,8 +652,8 @@ export default function TakeQuizPage() {
             </div>
           </div>
 
-          {/* Navigation */}
-          <div className="flex justify-between items-center pt-8 border-t border-gray-100">
+          {/* Navigation - notranslate to prevent re-translation */}
+          <div className="notranslate flex justify-between items-center pt-8 border-t border-gray-100">
             <button
               onClick={() => goToQuestion(currentQuestionIndex - 1)}
               disabled={currentQuestionIndex === 0}
@@ -558,7 +694,7 @@ export default function TakeQuizPage() {
           </div>
 
           {/* Status Message */}
-          <div className="mt-8 text-center">
+          <div className="notranslate mt-8 text-center">
             {currentAnswer ? null : (
               <p className="text-gray-500 text-sm">
                 Select an answer to continue
@@ -568,7 +704,7 @@ export default function TakeQuizPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
+        <div className="notranslate mt-8 text-center">
           <p className="text-sm text-gray-500">
             Your progress is automatically saved
           </p>
@@ -578,7 +714,7 @@ export default function TakeQuizPage() {
       {/* Submit Confirmation Modal */}
       {showSubmitConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+          <div className="notranslate bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
               Submit Quiz?
             </h3>
