@@ -14,6 +14,7 @@ import {
 interface Quiz {
   id: string;
   title: string;
+  start_time: string;
   end_time: string;
   question_count?: number;
 }
@@ -26,6 +27,7 @@ interface User {
 }
 
 type AttemptStatus = "none" | "in_progress" | "completed";
+type QuizStatus = "not_started" | "in_progress" | "ended";
 
 export default function QuizPage() {
   const params = useParams();
@@ -36,10 +38,30 @@ export default function QuizPage() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
   const [attemptStatus, setAttemptStatus] = useState<AttemptStatus>("none");
+  const [quizStatus, setQuizStatus] = useState<QuizStatus>("in_progress");
+  const [timeLeft, setTimeLeft] = useState<number>(0);
 
   useEffect(() => {
     loadQuizInfo();
   }, [params.link]);
+
+  useEffect(() => {
+    if (quiz && quizStatus === "not_started") {
+      const startTime = new Date(quiz.start_time).getTime();
+      const updateTimer = () => {
+        const now = Date.now();
+        const remaining = Math.max(0, startTime - now);
+        setTimeLeft(Math.ceil(remaining / 1000));
+        if (remaining <= 0) {
+          // Reload to check status again
+          loadQuizInfo();
+        }
+      };
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [quiz, quizStatus]);
 
   const loadQuizInfo = async () => {
     try {
@@ -67,6 +89,7 @@ export default function QuizPage() {
 
       setQuiz(quizData.quiz);
       setAttemptStatus(quizData.attemptStatus || "none");
+      setQuizStatus(quizData.quizStatus || "in_progress");
     } catch (err) {
       setError("Failed to load quiz information");
     } finally {
@@ -139,6 +162,95 @@ export default function QuizPage() {
               Your results will be reviewed by the assessment administrators.
               You will be notified of the outcome through the appropriate
               channels.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center w-full bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+            >
+              <FaHome className="w-4 h-4 mr-2" />
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show quiz ended screen
+  if (quizStatus === "ended" && quiz) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="mb-8">
+            <FaLock className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Quiz Ended
+            </h1>
+            <p className="text-gray-600">
+              This assessment has ended. You can no longer participate.
+            </p>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              {quiz.title}
+            </h2>
+            <p className="text-sm text-gray-600">
+              Ended at {new Date(quiz.end_time).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center w-full bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+            >
+              <FaHome className="w-4 h-4 mr-2" />
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show countdown for not started
+  if (quizStatus === "not_started" && quiz) {
+    const hours = Math.floor(timeLeft / 3600);
+    const minutes = Math.floor((timeLeft % 3600) / 60);
+    const seconds = timeLeft % 60;
+
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="mb-8">
+            <FaQuestionCircle className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Quiz Not Started Yet
+            </h1>
+            <p className="text-gray-600">
+              This assessment will start soon. Please wait for the timer to
+              reach zero.
+            </p>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {quiz.title}
+            </h2>
+            <div className="text-4xl font-mono font-bold text-blue-600 mb-2">
+              {hours.toString().padStart(2, "0")}:
+              {minutes.toString().padStart(2, "0")}:
+              {seconds.toString().padStart(2, "0")}
+            </div>
+            <p className="text-sm text-gray-600 mb-2">
+              Hours : Minutes : Seconds
+            </p>
+            <p className="text-sm text-gray-600">
+              Starts at {new Date(quiz.start_time).toLocaleString()}
             </p>
           </div>
 

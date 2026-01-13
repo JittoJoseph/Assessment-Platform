@@ -284,7 +284,9 @@ export default function TakeQuizPage() {
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = answers[currentQuestion.id];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = Object.values(answers).filter(
+    (answer) => answer.selected_option !== null
+  ).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -293,11 +295,12 @@ export default function TakeQuizPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-3">
             {/* Mobile Layout */}
-            <div className="flex flex-col gap-3 sm:hidden">
+            <div className="flex flex-col gap-2 sm:hidden">
+              {/* Top Row: Exit, Time Left, Progress */}
               <div className="flex items-center justify-between">
                 <Link
                   href="/"
-                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors p-2"
                 >
                   <svg
                     className="w-5 h-5"
@@ -312,29 +315,36 @@ export default function TakeQuizPage() {
                       d="M15 19l-7-7 7-7"
                     />
                   </svg>
-                  <span className="ml-1 text-sm font-medium">Exit</span>
                 </Link>
-                <div className="text-right">
-                  <div className="text-xs font-medium text-gray-900">
-                    {answeredCount}/{questions.length}
+
+                {/* Prominent Time Left */}
+                <div className="flex-1 text-center px-4">
+                  <div className="text-lg font-mono font-bold text-red-600">
+                    {(() => {
+                      const totalSeconds = Math.floor(timeRemaining / 1000);
+                      const hours = Math.floor(totalSeconds / 3600);
+                      const minutes = Math.floor((totalSeconds % 3600) / 60);
+                      const seconds = totalSeconds % 60;
+
+                      if (hours > 0) {
+                        return `${hours}h ${minutes}m ${seconds}s`;
+                      } else if (minutes > 0) {
+                        return `${minutes}m ${seconds}s`;
+                      } else {
+                        return `${seconds}s`;
+                      }
+                    })()}
                   </div>
-                  <div className="w-16 bg-gray-200 rounded-full h-1.5 mt-1">
-                    <div
-                      className="bg-gray-600 h-1.5 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${(answeredCount / questions.length) * 100}%`,
-                      }}
-                    ></div>
+                  <div className="text-xs text-gray-500 font-medium">
+                    TIME LEFT
                   </div>
                 </div>
-              </div>
-              <div className="text-center">
-                <h1 className="text-base font-semibold text-gray-900 truncate">
-                  {quiz?.title}
-                </h1>
-                <p className="text-xs text-gray-600 mt-1">
-                  Question {currentQuestionIndex + 1} of {questions.length}
-                </p>
+
+                <div className="text-right p-2">
+                  <div className="text-sm font-medium text-gray-900">
+                    {currentQuestionIndex + 1}/{questions.length}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -361,7 +371,7 @@ export default function TakeQuizPage() {
                   <span className="ml-1 text-sm font-medium">Exit</span>
                 </Link>
                 <div>
-                  <h1 className="text-lg font-semibold text-gray-900 truncate">
+                  <h1 className="text-lg font-semibold text-gray-900 truncate max-w-xs">
                     {quiz?.title}
                   </h1>
                   <p className="text-sm text-gray-600">
@@ -369,6 +379,30 @@ export default function TakeQuizPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Prominent Time Left in Center */}
+              <div className="flex-1 text-center px-8">
+                <div className="text-xl font-mono font-bold text-red-600">
+                  {(() => {
+                    const totalSeconds = Math.floor(timeRemaining / 1000);
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+
+                    if (hours > 0) {
+                      return `${hours}h ${minutes}m ${seconds}s`;
+                    } else if (minutes > 0) {
+                      return `${minutes}m ${seconds}s`;
+                    } else {
+                      return `${seconds}s`;
+                    }
+                  })()}
+                </div>
+                <div className="text-xs text-gray-500 font-medium">
+                  TIME LEFT
+                </div>
+              </div>
+
               <div className="text-right">
                 <div className="text-sm font-medium text-gray-900">
                   {answeredCount}/{questions.length} answered

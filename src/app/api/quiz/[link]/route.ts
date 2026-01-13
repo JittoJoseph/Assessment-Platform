@@ -29,6 +29,14 @@ export async function GET(
   const start = new Date(quiz.start_time)
   const end = new Date(quiz.end_time)
 
+  // Determine quiz status
+  let quizStatus: 'not_started' | 'in_progress' | 'ended' = 'in_progress'
+  if (now < start) {
+    quizStatus = 'not_started'
+  } else if (now > end) {
+    quizStatus = 'ended'
+  }
+
   // Check if user has already completed this quiz
   let attemptStatus: 'none' | 'in_progress' | 'completed' = 'none'
   if (user) {
@@ -50,19 +58,12 @@ export async function GET(
       quiz: {
         id: quiz.id,
         title: quiz.title,
+        start_time: quiz.start_time,
         end_time: quiz.end_time
       },
+      quizStatus,
       attemptStatus: 'completed'
     })
-  }
-
-  // Check time availability
-  if (now < start) {
-    return NextResponse.json({ error: 'Quiz has not started yet' }, { status: 403 })
-  }
-
-  if (now > end) {
-    return NextResponse.json({ error: 'Quiz has ended' }, { status: 403 })
   }
 
   // Get questions count
@@ -75,9 +76,11 @@ export async function GET(
     quiz: {
       id: quiz.id,
       title: quiz.title,
+      start_time: quiz.start_time,
       end_time: quiz.end_time,
       question_count: count
     },
+    quizStatus,
     attemptStatus
   })
 }
