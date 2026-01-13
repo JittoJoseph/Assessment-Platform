@@ -42,18 +42,21 @@ export default function TakeQuizPage() {
   const [completed, setCompleted] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
+  const [answersReady, setAnswersReady] = useState(false);
 
-  // Load saved answers from localStorage
-  const loadSavedAnswers = useCallback(() => {
+  // Load saved answers from localStorage - returns the answers directly
+  const loadSavedAnswers = useCallback((): Record<string, Answer> => {
     try {
       const saved = localStorage.getItem(`quiz_answers_${params.attemptId}`);
       if (saved) {
         const parsedAnswers = JSON.parse(saved);
         setAnswers(parsedAnswers);
+        return parsedAnswers;
       }
     } catch (err) {
       console.error("Failed to load saved answers:", err);
     }
+    return {};
   }, [params.attemptId]);
 
   // Save answers to localStorage
@@ -80,7 +83,8 @@ export default function TakeQuizPage() {
 
   // Check quiz end time and update timer
   useEffect(() => {
-    if (quiz && !completed && !autoSubmitted) {
+    // Only start timer after quiz is loaded and answers are ready
+    if (quiz && !completed && !autoSubmitted && answersReady) {
       const checkEndTime = () => {
         const now = new Date();
         const end = new Date(quiz.end_time);
@@ -96,7 +100,7 @@ export default function TakeQuizPage() {
       const interval = setInterval(checkEndTime, 1000);
       return () => clearInterval(interval);
     }
-  }, [quiz, completed, autoSubmitted]);
+  }, [quiz, completed, autoSubmitted, answersReady]);
 
   // Format time remaining
   const formatTimeRemaining = (ms: number) => {
@@ -126,7 +130,8 @@ export default function TakeQuizPage() {
       setUser(authData.user);
 
       // Load saved answers first
-      loadSavedAnswers();
+      const savedAnswers = loadSavedAnswers();
+      setAnswersReady(true);
 
       // Load attempt data
       const response = await fetch("/api/quiz/start-attempt", {
@@ -204,7 +209,19 @@ export default function TakeQuizPage() {
 
     setSubmitting(true);
     try {
-      const answersArray = Object.values(answers);
+      // Always read from localStorage as it's the most up-to-date source
+      // (state updates are async, but localStorage writes are sync)
+      let answersToSubmit: Answer[] = [];
+      const saved = localStorage.getItem(`quiz_answers_${params.attemptId}`);
+      if (saved) {
+        const parsedAnswers = JSON.parse(saved);
+        answersToSubmit = Object.values(parsedAnswers);
+      }
+      // Fallback to state if localStorage is empty
+      if (answersToSubmit.length === 0) {
+        answersToSubmit = Object.values(answers);
+      }
+      const answersArray = answersToSubmit;
       const response = await fetch("/api/quiz/submit-all-answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

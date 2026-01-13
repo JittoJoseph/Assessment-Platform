@@ -64,40 +64,40 @@ export async function POST(request: NextRequest) {
   // Create existing answers lookup map
   const existingAnswerMap = new Map(existingAnswers?.map(a => [a.question_id, a.id]) || [])
 
-  // Process all answers in memory
+  // Create a lookup map for submitted answers
+  const submittedAnswersMap = new Map(
+    answers.map((a: { question_id: string; selected_option: number | null }) => [a.question_id, a.selected_option])
+  )
+
+  // Process ALL questions (not just submitted answers) to ensure every question has an answer record
   const toInsert = []
   const toUpdate = []
   let totalScore = 0
 
-  for (const answer of answers) {
-    if (!answer.question_id || !questionMap.has(answer.question_id)) {
-      continue // Skip invalid question IDs
-    }
-
-    // Validate answer data
-    const selected_option = typeof answer.selected_option === 'number' ? answer.selected_option : null
-
-    // Get correct answer from our pre-fetched data
-    const correct_answer = questionMap.get(answer.question_id)!
+  for (const [questionId, correctAnswer] of questionMap) {
+    // Get the selected option from submitted answers, or null if not answered
+    const selected_option = submittedAnswersMap.has(questionId) 
+      ? (typeof submittedAnswersMap.get(questionId) === 'number' ? submittedAnswersMap.get(questionId) : null)
+      : null
 
     // Validate correctness
-    const is_correct = selected_option !== null && selected_option === correct_answer
+    const is_correct = selected_option !== null && selected_option === correctAnswer
     const marks = is_correct ? 1 : 0
     totalScore += marks
 
     const answerData = {
       attempt_id,
-      question_id: answer.question_id,
+      question_id: questionId,
       selected_option,
       is_correct,
       marks_obtained: marks
     }
 
     // Determine if this is an insert or update
-    if (existingAnswerMap.has(answer.question_id)) {
+    if (existingAnswerMap.has(questionId)) {
       toUpdate.push({
         ...answerData,
-        id: existingAnswerMap.get(answer.question_id),
+        id: existingAnswerMap.get(questionId),
         updated_at: new Date().toISOString(),
       })
     } else {
