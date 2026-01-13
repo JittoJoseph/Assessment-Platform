@@ -14,10 +14,11 @@ export async function GET(
   const userCookie = cookieStore.get('user')?.value
   const user = userCookie ? JSON.parse(userCookie) : null
 
+  // Find quiz by id
   const { data: quiz, error } = await supabase
     .from('quizzes')
     .select('id, title, start_time, end_time')
-    .eq('shareable_link', link)
+    .eq('id', link)
     .single()
 
   if (error || !quiz) {

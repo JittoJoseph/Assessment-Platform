@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   const { data: quiz } = await supabase
     .from('quizzes')
     .select('*')
-    .eq('shareable_link', quiz_id)
+    .eq('id', quiz_id)
     .single()
 
   if (!quiz) {

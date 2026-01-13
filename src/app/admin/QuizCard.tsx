@@ -6,7 +6,6 @@ import Link from "next/link";
 type Quiz = {
   id: string;
   title: string;
-  shareable_link: string;
   start_time: string;
   end_time: string;
 };
@@ -33,7 +32,7 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
   };
 
   const copyToClipboard = async () => {
-    const fullUrl = `${baseUrl}/quiz/${quiz.shareable_link}`;
+    const fullUrl = `${baseUrl}/quiz/${quiz.id}`;
 
     try {
       await navigator.clipboard.writeText(fullUrl);
@@ -45,7 +44,7 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
   };
 
   const shareQuiz = async () => {
-    const fullUrl = `${baseUrl}/quiz/${quiz.shareable_link}`;
+    const fullUrl = `${baseUrl}/quiz/${quiz.id}`;
     const shareData = {
       title: quiz.title,
       text: `Take this quiz: ${quiz.title}`,
@@ -209,7 +208,7 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
                   />
                 </svg>
                 <code className="text-sm text-gray-600 break-all font-mono">
-                  {baseUrl}/quiz/{quiz.shareable_link}
+                  {baseUrl}/quiz/{quiz.id}
                 </code>
               </div>
             </div>

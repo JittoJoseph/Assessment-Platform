@@ -22,7 +22,7 @@ async function getQuizzes() {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("quizzes")
-    .select("id, title, shareable_link, start_time, end_time")
+    .select("id, title, start_time, end_time")
     .order("created_at", { ascending: false });
 
   if (error) throw error;

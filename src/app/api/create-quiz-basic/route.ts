@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
         start_time: startTime,
         end_time: endTime,
         created_by: user.id,
-        shareable_link: crypto.randomUUID(),
       })
       .select()
       .single();
