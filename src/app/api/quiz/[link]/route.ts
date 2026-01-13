@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-client'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function GET(
   request: NextRequest,
@@ -8,9 +9,14 @@ export async function GET(
   const { link } = await params
   const supabase = createClient()
 
+  // Get user from cookie
+  const cookieStore = await cookies()
+  const userCookie = cookieStore.get('user')?.value
+  const user = userCookie ? JSON.parse(userCookie) : null
+
   const { data: quiz, error } = await supabase
     .from('quizzes')
-    .select('*')
+    .select('id, title, start_time, end_time')
     .eq('shareable_link', link)
     .single()
 
@@ -22,8 +28,40 @@ export async function GET(
   const start = new Date(quiz.start_time)
   const end = new Date(quiz.end_time)
 
-  if (now < start || now > end) {
-    return NextResponse.json({ error: 'Quiz not available' }, { status: 403 })
+  // Check if user has already completed this quiz
+  let attemptStatus: 'none' | 'in_progress' | 'completed' = 'none'
+  if (user) {
+    const { data: attempt } = await supabase
+      .from('attempts')
+      .select('id, is_completed')
+      .eq('user_id', user.id)
+      .eq('quiz_id', quiz.id)
+      .single()
+
+    if (attempt) {
+      attemptStatus = attempt.is_completed ? 'completed' : 'in_progress'
+    }
+  }
+
+  // If already completed, return early with status
+  if (attemptStatus === 'completed') {
+    return NextResponse.json({
+      quiz: {
+        id: quiz.id,
+        title: quiz.title,
+        end_time: quiz.end_time
+      },
+      attemptStatus: 'completed'
+    })
+  }
+
+  // Check time availability
+  if (now < start) {
+    return NextResponse.json({ error: 'Quiz has not started yet' }, { status: 403 })
+  }
+
+  if (now > end) {
+    return NextResponse.json({ error: 'Quiz has ended' }, { status: 403 })
   }
 
   // Get questions count
@@ -38,6 +76,7 @@ export async function GET(
       title: quiz.title,
       end_time: quiz.end_time,
       question_count: count
-    }
+    },
+    attemptStatus
   })
 }
