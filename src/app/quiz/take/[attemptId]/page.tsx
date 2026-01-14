@@ -579,36 +579,89 @@ export default function TakeQuizPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           {/* Question Navigation - notranslate to prevent re-translation */}
           <div className="notranslate mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-600">Questions</h3>
-              <span className="text-sm text-gray-500">
-                {answeredCount} of {questions.length} answered
-              </span>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {questions.map((_, index) => {
-                const answer = answers[questions[index].id];
-                const isAnswered = answer && answer.selected_option !== null;
-                const isSkipped = answer && answer.selected_option === null;
-                const isCurrent = index === currentQuestionIndex;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => goToQuestion(index)}
-                    className={`flex-shrink-0 w-8 h-8 rounded-md font-medium text-xs transition-all duration-200 ${
-                      isCurrent
-                        ? "bg-gray-800 text-white shadow-md ring-2 ring-gray-300"
-                        : isAnswered
-                        ? "bg-gray-600 text-white hover:bg-gray-700"
-                        : isSkipped
-                        ? "bg-gray-300 text-gray-700 border border-gray-400 hover:bg-gray-400"
-                        : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                );
-              })}
+            {/* Mobile-friendly compact navigation */}
+            <div className="flex items-center justify-between gap-4">
+              {/* Previous Button */}
+              <button
+                onClick={() =>
+                  goToQuestion(Math.max(0, currentQuestionIndex - 1))
+                }
+                disabled={currentQuestionIndex === 0}
+                className="flex-shrink-0 w-10 h-10 rounded-full border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shadow-sm"
+                aria-label="Previous question"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* Center: Question indicator */}
+              <div className="flex-1 flex flex-col items-center">
+                {/* Current question display */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl font-bold text-gray-900">
+                    {currentQuestionIndex + 1}
+                  </span>
+                  <span className="text-gray-400">/</span>
+                  <span className="text-lg text-gray-500">
+                    {questions.length}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full max-w-xs">
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gray-800 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${
+                          ((currentQuestionIndex + 1) / questions.length) * 100
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-1.5 text-xs text-gray-400">
+                    <span>{answeredCount} answered</span>
+                    <span>{questions.length - answeredCount} remaining</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={() =>
+                  goToQuestion(
+                    Math.min(questions.length - 1, currentQuestionIndex + 1)
+                  )
+                }
+                disabled={currentQuestionIndex === questions.length - 1}
+                className="flex-shrink-0 w-10 h-10 rounded-full border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shadow-sm"
+                aria-label="Next question"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
 
