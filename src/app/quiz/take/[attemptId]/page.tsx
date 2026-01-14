@@ -118,20 +118,59 @@ export default function TakeQuizPage() {
           setIsTranslated(true);
         }
       } else {
-        // Reset to original - clear the translation
-        const select = document.querySelector(
-          ".goog-te-combo"
-        ) as HTMLSelectElement;
-        if (select) {
-          // Clear the select value to revert to original language
-          select.value = "";
-          const event = new Event("change", {
-            bubbles: true,
-            cancelable: true,
-          });
-          select.dispatchEvent(event);
-          setIsTranslated(false);
+        // Restore original by removing Google Translate iframe and cookies
+        // This is the most reliable way to restore original text
+        const frame = document.querySelector(
+          ".goog-te-banner-frame"
+        ) as HTMLIFrameElement;
+        if (frame) {
+          // Try to click the "Show original" button inside the iframe
+          try {
+            const innerDoc =
+              frame.contentDocument || frame.contentWindow?.document;
+            const showOriginalBtn = innerDoc?.querySelector(
+              '[id=":1.restore"]'
+            ) as HTMLElement;
+            if (showOriginalBtn) {
+              showOriginalBtn.click();
+            }
+          } catch (e) {
+            // Cross-origin restriction, use alternative method
+          }
         }
+
+        // Alternative: Clear cookies and reload translate element
+        document.cookie =
+          "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie =
+          "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" +
+          window.location.hostname;
+        document.cookie =
+          "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." +
+          window.location.hostname;
+
+        // Remove translated class and font elements that Google adds
+        document.body.classList.remove("translated-ltr", "translated-rtl");
+        const htmlEl = document.documentElement;
+        htmlEl.classList.remove("translated-ltr", "translated-rtl");
+
+        // Remove Google's font elements
+        const fontEls = document.querySelectorAll(
+          'font[style*="vertical-align: inherit"]'
+        );
+        fontEls.forEach((font) => {
+          const parent = font.parentNode;
+          if (parent) {
+            parent.replaceChild(
+              document.createTextNode(font.textContent || ""),
+              font
+            );
+          }
+        });
+
+        // Reload page to fully restore (most reliable method)
+        window.location.reload();
+        return;
       }
     } finally {
       setTranslateLoading(false);
