@@ -65,18 +65,13 @@ export default function QuizPage() {
 
   const loadQuizInfo = async () => {
     try {
-      // Check authentication first
+      // Check authentication
       const authResponse = await fetch("/api/auth/check");
       const authData = await authResponse.json();
 
-      if (!authData.authenticated) {
-        // Store the current URL for redirect after login
-        localStorage.setItem("redirectAfterLogin", window.location.href);
-        router.push("/auth");
-        return;
+      if (authData.authenticated) {
+        setUser(authData.user);
       }
-
-      setUser(authData.user);
 
       // Load quiz info
       const quizResponse = await fetch(`/api/quiz/${params.link}`);
@@ -376,9 +371,24 @@ export default function QuizPage() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600 hidden sm:block">
-                Welcome, {user?.full_name}
-              </span>
+              {user ? (
+                <span className="text-sm text-gray-600 hidden sm:block">
+                  Welcome, {user.full_name}
+                </span>
+              ) : (
+                <Link
+                  href="/auth"
+                  onClick={() =>
+                    localStorage.setItem(
+                      "redirectAfterLogin",
+                      window.location.href
+                    )
+                  }
+                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -389,66 +399,145 @@ export default function QuizPage() {
         <div className="w-full max-w-md mx-auto">
           {/* Quiz Preview Card */}
           <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <FaQuestionCircle className="w-8 h-8 text-gray-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 {quiz.title}
               </h2>
-              <p className="text-gray-600 mb-4">
-                {quiz.question_count} questions • {formatTimeRemaining()}
-              </p>
-              <p className="text-sm text-gray-500 mb-4">
-                Assessment for {user?.full_name}
-              </p>
-              <p className="text-xs text-gray-400">Ends: {formatEndTime()}</p>
+            </div>
+
+            {/* Quiz Details */}
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-500">Questions</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {quiz.question_count}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-500">Time Remaining</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {formatTimeRemaining()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-500">Deadline</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {formatEndTime()}
+                </span>
+              </div>
             </div>
 
             {/* Instructions */}
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">
-                Before you start:
+            <div className="mb-6 bg-gray-50 rounded-lg p-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Before You Begin
               </h3>
-              <div className="space-y-3 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-start">
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                  <span>Answer all questions to the best of your ability</span>
+                  <svg
+                    className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  <span>Navigate freely between questions</span>
                 </div>
                 <div className="flex items-start">
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                  <span>You can navigate between questions freely</span>
+                  <svg
+                    className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  <span>Review all answers before final submission</span>
                 </div>
                 <div className="flex items-start">
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                  <span>Your answers are saved automatically</span>
+                  <svg
+                    className="w-4 h-4 text-amber-500 mr-2 mt-0.5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <span>Answers cannot be changed after submission</span>
                 </div>
                 <div className="flex items-start">
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                  <span>Once submitted, you cannot change your answers</span>
+                  <svg
+                    className="w-4 h-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>Ensure stable internet before starting</span>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <button
-                onClick={startQuizAttempt}
-                disabled={starting}
-                className="notranslate cursor-pointer w-full bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                {starting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Starting...
-                  </>
-                ) : (
-                  <>
-                    <FaPlay className="w-4 h-4 mr-2" />
-                    Start Assessment
-                  </>
-                )}
-              </button>
+              {user ? (
+                <button
+                  onClick={startQuizAttempt}
+                  disabled={starting}
+                  className="notranslate cursor-pointer w-full bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {starting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlay className="w-4 h-4 mr-2" />
+                      Start Assessment
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    localStorage.setItem(
+                      "redirectAfterLogin",
+                      window.location.href
+                    );
+                    router.push("/auth");
+                  }}
+                  className="notranslate cursor-pointer w-full bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
+                >
+                  <FaLock className="w-4 h-4 mr-2" />
+                  Sign In to Start Assessment
+                </button>
+              )}
 
               <Link
                 href="/"
