@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FaLock, FaLink, FaChartBar } from "react-icons/fa";
 import Navbar from "./Navbar";
+import Footer from "../components/Footer";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -83,6 +84,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }
