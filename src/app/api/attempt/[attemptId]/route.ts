@@ -17,10 +17,12 @@ export async function GET(
         id,
         total_score,
         submitted_at,
+        time_taken,
         quiz_id,
         profiles!inner (
           full_name,
-          email
+          email,
+          phone
         )
       `)
       .eq("id", attemptId)
@@ -75,6 +77,7 @@ export async function GET(
       id: attempt.id,
       total_score: attempt.total_score,
       submitted_at: attempt.submitted_at,
+      time_taken: attempt.time_taken,
       quiz_id: attempt.quiz_id,
       profiles: attempt.profiles,
       answers: answersData

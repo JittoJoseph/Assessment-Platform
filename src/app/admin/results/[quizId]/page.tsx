@@ -4,30 +4,36 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+  AlignmentType,
+  BorderStyle,
+} from "docx";
 
 type User = {
   full_name: string;
   role: string;
 };
 
-type Answer = {
-  question_id: string;
-  selected_option: number | null;
-  is_correct: boolean;
-  marks_obtained: number;
-  question: string;
-  correct_answer: number;
-};
-
 type AttemptSummary = {
   id: string;
   total_score: number;
   submitted_at: string;
-  profiles: { full_name: string; email: string };
+  time_taken: number | null;
+  profiles: { full_name: string; email: string; phone: string };
 };
 
 type AttemptDetails = AttemptSummary & {
-  answers: Answer[];
+  profiles: { full_name: string; email: string; phone: string };
 };
 
 type ResultsResponse = {
@@ -38,6 +44,8 @@ type ResultsResponse = {
   hasMore: boolean;
 };
 
+type FilterOption = 10 | 20 | 50 | "all";
+
 export default function ResultsPage() {
   const { quizId } = useParams();
   const router = useRouter();
@@ -45,13 +53,17 @@ export default function ResultsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [selectedAttempt, setSelectedAttempt] = useState<AttemptDetails | null>(
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [selectedAttempt, setSelectedAttempt] = useState<AttemptSummary | null>(
     null
   );
-  const [loadingDetails, setLoadingDetails] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string>("");
-  const [shortlistCount, setShortlistCount] = useState(20);
+  const [filterOption, setFilterOption] = useState<FilterOption>(20);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [quizName, setQuizName] = useState<string>("");
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString([], {
@@ -64,18 +76,35 @@ export default function ResultsPage() {
     });
   };
 
+  const formatTimeTaken = (seconds: number | null): string => {
+    if (seconds === null || seconds === undefined) return "-";
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
+
   const loadResults = useCallback(
-    async (loadMore = false) => {
+    async (page = 1, isFilterChange = false) => {
       try {
-        if (loadMore) {
-          setLoadingMore(true);
+        if (isFilterChange) {
+          setFilterLoading(true);
         } else {
           setLoading(true);
         }
 
-        const offset = loadMore ? attempts.length : 0;
+        const limit = filterOption === "all" ? 1000 : filterOption;
+        const offset = (page - 1) * limit;
+
         const response = await fetch(
-          `/api/results/${quizId}?limit=50&offset=${offset}`
+          `/api/results/${quizId}?limit=${limit}&offset=${offset}`
         );
 
         if (!response.ok) {
@@ -86,27 +115,22 @@ export default function ResultsPage() {
 
         const data: ResultsResponse = await response.json();
 
-        if (loadMore) {
-          setAttempts((prev) => [...prev, ...data.attempts]);
-        } else {
-          setAttempts(data.attempts);
-        }
-
+        setAttempts(data.attempts);
         setTotalCount(data.totalCount);
+        setCurrentPage(page);
       } catch (err: unknown) {
         const error = err as Error;
         console.error("Error loading results:", error);
         alert(`Error loading results: ${error.message}`);
       } finally {
         setLoading(false);
-        setLoadingMore(false);
+        setFilterLoading(false);
       }
     },
-    [quizId, attempts.length]
+    [quizId, filterOption]
   );
 
   useEffect(() => {
-    // Check authentication on client side as backup
     const checkClientAuth = async () => {
       try {
         const response = await fetch("/api/auth/check");
@@ -123,6 +147,8 @@ export default function ResultsPage() {
         }
         setUser(data.user);
         loadResults();
+        fetchQuizName();
+        setInitialLoadDone(true);
       } catch {
         setAuthError("Authentication check failed");
         setLoading(false);
@@ -130,45 +156,253 @@ export default function ResultsPage() {
     };
 
     checkClientAuth();
-  }, [loadResults]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const loadAttemptDetails = async (attemptId: string) => {
-    setLoadingDetails(true);
+  // Reload results when filter option changes (after initial load)
+  useEffect(() => {
+    if (initialLoadDone) {
+      loadResults(1, true);
+    }
+  }, [filterOption, initialLoadDone, loadResults]);
+
+  const fetchQuizName = async () => {
     try {
-      const response = await fetch(`/api/attempt/${attemptId}`);
-      if (!response.ok) {
-        throw new Error("Failed to load attempt details");
+      const response = await fetch(`/api/quizzes/${quizId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setQuizName(data.quiz.title);
       }
-      const data: AttemptDetails = await response.json();
-      setSelectedAttempt(data);
-    } catch (err: unknown) {
-      const error = err as Error;
-      console.error("Error loading attempt details:", error);
-      alert(`Error loading details: ${error.message}`);
-    } finally {
-      setLoadingDetails(false);
+    } catch (error) {
+      console.error("Failed to fetch quiz name:", error);
     }
   };
 
   const handleAttemptClick = (attempt: AttemptSummary) => {
-    loadAttemptDetails(attempt.id);
+    setSelectedAttempt(attempt);
   };
 
-  // Memoize computed values
-  const shortlisted = useMemo(
-    () =>
-      attempts
-        .slice()
-        .sort((a, b) => b.total_score - a.total_score)
-        .slice(0, shortlistCount),
-    [attempts, shortlistCount]
-  );
+  // Results are already sorted by API (Score DESC, Time ASC)
+  const filteredResults = useMemo(() => {
+    return attempts;
+  }, [attempts]);
 
   const highestScore = useMemo(
     () =>
       attempts.length > 0 ? Math.max(...attempts.map((a) => a.total_score)) : 0,
     [attempts]
   );
+
+  // Export functions
+  const getExportData = (shortlistedOnly: boolean) => {
+    const data = shortlistedOnly ? filteredResults : attempts;
+    return data.map((attempt, index) => ({
+      rank: index + 1,
+      name: attempt.profiles.full_name,
+      email: attempt.profiles.email,
+      phone: attempt.profiles.phone || "-",
+      score: attempt.total_score,
+      timeTaken: formatTimeTaken(attempt.time_taken),
+    }));
+  };
+
+  const exportToCSV = (shortlistedOnly: boolean) => {
+    const data = getExportData(shortlistedOnly);
+    const headers = [
+      "Rank",
+      "Name",
+      "Email",
+      "Phone",
+      "Score",
+      "Time Taken",
+      "Remarks",
+    ];
+    const csvContent = [
+      `Quiz: ${quizName}`,
+      `Generated: ${new Date().toLocaleString()}`,
+      "",
+      headers.join(","),
+      ...data.map((row) =>
+        [
+          row.rank,
+          `"${row.name}"`,
+          `"${row.email}"`,
+          `"${row.phone}"`,
+          row.score,
+          `"${row.timeTaken}"`,
+          "", // Empty remarks column
+        ].join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${quizName.replace(/[^a-zA-Z0-9]/g, "_")}-results-${
+      shortlistedOnly ? "shortlisted" : "all"
+    }.csv`;
+    link.click();
+    setShowExportMenu(false);
+  };
+
+  const exportToPDF = (shortlistedOnly: boolean) => {
+    const data = getExportData(shortlistedOnly);
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text(`${quizName} - Results`, 14, 22);
+    doc.setFontSize(14);
+    doc.text(
+      `Quiz Results - ${shortlistedOnly ? "Shortlisted" : "All"} Students`,
+      14,
+      32
+    );
+    doc.setFontSize(11);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+
+    autoTable(doc, {
+      startY: 50,
+      head: [["Rank", "Name", "Email", "Phone", "Score", "Remarks"]],
+      body: data.map((row) => [
+        row.rank,
+        row.name,
+        row.email,
+        row.phone,
+        row.score,
+        "", // Empty remarks column
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [0, 0, 0] },
+      columnStyles: {
+        0: { cellWidth: 15 }, // Rank
+        1: { cellWidth: 40 }, // Name - slightly wider
+        2: { cellWidth: 50 }, // Email - slightly wider
+        3: { cellWidth: 30 }, // Phone - slightly wider
+        4: { cellWidth: 15 }, // Score
+        5: { cellWidth: 35 }, // Remarks - much wider now that Time is removed
+      },
+    });
+
+    doc.save(
+      `${quizName.replace(/[^a-zA-Z0-9]/g, "_")}-results-${
+        shortlistedOnly ? "shortlisted" : "all"
+      }.pdf`
+    );
+    setShowExportMenu(false);
+  };
+
+  const exportToDocx = async (shortlistedOnly: boolean) => {
+    const data = getExportData(shortlistedOnly);
+
+    const tableRows = [
+      new TableRow({
+        children: ["Rank", "Name", "Email", "Phone", "Score", "Remarks"].map(
+          (header) =>
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: header, bold: true })],
+                  alignment: AlignmentType.CENTER,
+                }),
+              ],
+              shading: { fill: "EEEEEE" },
+            })
+        ),
+        tableHeader: true,
+      }),
+      ...data.map(
+        (row) =>
+          new TableRow({
+            children: [
+              row.rank.toString(),
+              row.name,
+              row.email,
+              row.phone,
+              row.score.toString(),
+              "", // Empty remarks column
+            ].map(
+              (cell) =>
+                new TableCell({
+                  children: [new Paragraph({ children: [new TextRun(cell)] })],
+                  borders: {
+                    top: {
+                      style: BorderStyle.SINGLE,
+                      size: 1,
+                      color: "CCCCCC",
+                    },
+                    bottom: {
+                      style: BorderStyle.SINGLE,
+                      size: 1,
+                      color: "CCCCCC",
+                    },
+                    left: {
+                      style: BorderStyle.SINGLE,
+                      size: 1,
+                      color: "CCCCCC",
+                    },
+                    right: {
+                      style: BorderStyle.SINGLE,
+                      size: 1,
+                      color: "CCCCCC",
+                    },
+                  },
+                })
+            ),
+          })
+      ),
+    ];
+
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: quizName,
+                  bold: true,
+                  size: 32,
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Quiz Results - ${
+                    shortlistedOnly ? "Shortlisted" : "All"
+                  } Students`,
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Generated on: ${new Date().toLocaleString()}`,
+                  size: 20,
+                }),
+              ],
+            }),
+            new Paragraph({ text: "" }),
+            new Table({
+              rows: tableRows,
+              width: { size: 100, type: WidthType.PERCENTAGE },
+            }),
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${quizName.replace(/[^a-zA-Z0-9]/g, "_")}-results-${
+      shortlistedOnly ? "shortlisted" : "all"
+    }.docx`;
+    link.click();
+    setShowExportMenu(false);
+  };
 
   if (authError) {
     return (
@@ -180,7 +414,7 @@ export default function ResultsPage() {
           <p className="text-gray-600 mb-6">{authError}</p>
           <button
             onClick={() => (window.location.href = "/")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
             Go Home
           </button>
@@ -246,244 +480,404 @@ export default function ResultsPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Overview */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-8 h-8 bg-blue-50 rounded-md mb-1">
-                <svg
-                  className="w-3.5 h-3.5 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
-              <p className="text-lg font-bold text-gray-900 leading-none">
-                {totalCount}
-              </p>
-              <p className="text-xs text-gray-500 uppercase tracking-wide leading-tight">
-                Total Attempts
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
+              <p className="text-sm text-gray-500">Total Attempts</p>
             </div>
           </div>
-
-          <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-8 h-8 bg-green-50 rounded-md mb-1">
-                <svg
-                  className="w-3.5 h-3.5 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <p className="text-lg font-bold text-gray-900 leading-none">
-                {shortlisted.length}
+              <p className="text-2xl font-bold text-green-600">
+                {attempts.length}
               </p>
-              <p className="text-xs text-gray-500 uppercase tracking-wide leading-tight">
-                Shortlisted
-              </p>
+              <p className="text-sm text-gray-500">Showing</p>
             </div>
           </div>
-
-          <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-8 h-8 bg-purple-50 rounded-md mb-1">
-                <svg
-                  className="w-3.5 h-3.5 text-purple-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                  />
-                </svg>
-              </div>
-              <p className="text-lg font-bold text-gray-900 leading-none">
+              <p className="text-2xl font-bold text-purple-600">
                 {highestScore}
               </p>
-              <p className="text-xs text-gray-500 uppercase tracking-wide leading-tight">
-                Highest Score
-              </p>
+              <p className="text-sm text-gray-500">Highest Score</p>
             </div>
           </div>
         </div>
 
-        {/* Shortlisting Controls */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div className="flex-1 max-w-md">
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Number of Students to Shortlist
-              </label>
-              <input
-                type="number"
-                min="1"
-                max={totalCount}
-                value={shortlistCount}
-                onChange={(e) =>
-                  setShortlistCount(
-                    Math.max(
-                      1,
-                      Math.min(totalCount, parseInt(e.target.value) || 20)
-                    )
-                  )
-                }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
-                placeholder="Enter number of students"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Shows top {shortlistCount} students by score (max: {totalCount})
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShortlistCount(10)}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-              >
-                Top 10
-              </button>
-              <button
-                onClick={() => setShortlistCount(20)}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-              >
-                Top 20
-              </button>
-              <button
-                onClick={() => setShortlistCount(50)}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-              >
-                Top 50
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Results List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Top {shortlistCount} Candidates
-              <span className="ml-2 text-sm font-normal text-gray-600">
-                ({shortlisted.length} loaded, {totalCount} total)
+        {/* Controls Bar */}
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm font-medium text-gray-700 self-center mr-2">
+                Show:
               </span>
-            </h2>
-          </div>
-
-          <div className="divide-y divide-gray-200">
-            {shortlisted.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <p className="text-gray-500">
-                  No candidates found matching the criteria.
-                </p>
-              </div>
-            ) : (
-              shortlisted.map((attempt, index) => (
-                <div
-                  key={attempt.id}
-                  className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => handleAttemptClick(attempt)}
+              {([10, 20, 50, "all"] as FilterOption[]).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => !filterLoading && setFilterOption(option)}
+                  disabled={filterLoading}
+                  className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
+                    filterOption === option
+                      ? "bg-black text-white"
+                      : filterLoading
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          {attempt.profiles.full_name}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {attempt.profiles.email}
-                        </p>
+                  {option === "all" ? "All" : `Top ${option}`}
+                </button>
+              ))}
+            </div>
+
+            {/* Export Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-lg font-medium transition-colors text-sm"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Export
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {showExportMenu && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
+                  <div className="p-1">
+                    {/* Shortlisted Section */}
+                    <div className="px-3 py-2">
+                      <p className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2">
+                        Shortlisted ({filteredResults.length})
+                      </p>
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => exportToCSV(true)}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4 text-blue-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Export as CSV
+                        </button>
+                        <button
+                          onClick={() => exportToPDF(true)}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4 text-red-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Export as PDF
+                        </button>
+                        <button
+                          onClick={() => exportToDocx(true)}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4 text-green-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Export as DOCX
+                        </button>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-green-600">
-                        {attempt.total_score}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {formatDateTime(attempt.submitted_at)}
+
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 my-1"></div>
+
+                    {/* All Students Section */}
+                    <div className="px-3 py-2">
+                      <p className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2">
+                        All Students ({attempts.length})
+                      </p>
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => exportToCSV(false)}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4 text-blue-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Export as CSV
+                        </button>
+                        <button
+                          onClick={() => exportToPDF(false)}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4 text-red-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Export as PDF
+                        </button>
+                        <button
+                          onClick={() => exportToDocx(false)}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4 text-green-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          Export as DOCX
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
-              ))
-            )}
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Results Table */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden relative">
+          {filterLoading && (
+            <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                <span className="text-gray-600">Loading...</span>
+              </div>
+            </div>
+          )}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-16">
+                    Rank
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden md:table-cell">
+                    Email
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-24">
+                    Score
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                    Time Taken
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredResults.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-12 text-center text-gray-500"
+                    >
+                      No results found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredResults.map((attempt, index) => (
+                    <tr
+                      key={attempt.id}
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => handleAttemptClick(attempt)}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-gray-900 text-white rounded-full text-sm font-semibold">
+                          {index + 1}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900">
+                          {attempt.profiles.full_name}
+                        </p>
+                        <p className="text-sm text-gray-500 md:hidden">
+                          {attempt.profiles.email}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 hidden md:table-cell">
+                        {attempt.profiles.email}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-800">
+                          {attempt.total_score}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-600 font-mono text-sm">
+                        {formatTimeTaken(attempt.time_taken)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
-          {/* Load More Button */}
-          {attempts.length < totalCount && (
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => loadResults(true)}
-                disabled={loadingMore}
-                className="w-full py-3 px-4 bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed"
-              >
-                {loadingMore ? (
-                  <div className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Loading more results...
-                  </div>
-                ) : (
-                  `Load More Results (${attempts.length} of ${totalCount})`
-                )}
-              </button>
+          {/* Pagination Controls */}
+          {filterOption !== "all" && totalCount > (filterOption as number) && (
+            <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Showing {(currentPage - 1) * (filterOption as number) + 1} to{" "}
+                  {Math.min(currentPage * (filterOption as number), totalCount)}{" "}
+                  of {totalCount} results
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => loadResults(currentPage - 1)}
+                    disabled={currentPage === 1 || filterLoading}
+                    className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+
+                  {/* Page Numbers */}
+                  {(() => {
+                    const totalPages = Math.ceil(
+                      totalCount / (filterOption as number)
+                    );
+                    const pages = [];
+                    const maxVisiblePages = 5;
+                    let startPage = Math.max(
+                      1,
+                      currentPage - Math.floor(maxVisiblePages / 2)
+                    );
+                    let endPage = Math.min(
+                      totalPages,
+                      startPage + maxVisiblePages - 1
+                    );
+
+                    if (endPage - startPage + 1 < maxVisiblePages) {
+                      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                    }
+
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(
+                        <button
+                          key={i}
+                          onClick={() => loadResults(i)}
+                          disabled={filterLoading}
+                          className={`px-3 py-1 text-sm border rounded ${
+                            currentPage === i
+                              ? "bg-black text-white border-black"
+                              : "bg-white border-gray-300 hover:bg-gray-50"
+                          } disabled:cursor-not-allowed`}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    return pages;
+                  })()}
+
+                  <button
+                    onClick={() => loadResults(currentPage + 1)}
+                    disabled={
+                      currentPage ===
+                        Math.ceil(totalCount / (filterOption as number)) ||
+                      filterLoading
+                    }
+                    className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Candidate Details Modal */}
+        {/* Student Details Modal */}
         {selectedAttempt && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={() => setSelectedAttempt(null)}
+          >
+            <div
+              className="bg-white rounded-xl max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    {selectedAttempt.profiles.full_name}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Score: {selectedAttempt.total_score} • Submitted:{" "}
-                    {formatDateTime(selectedAttempt.submitted_at)}
-                  </p>
-                </div>
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Student Details
+                </h3>
                 <button
                   onClick={() => setSelectedAttempt(null)}
                   className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -505,106 +899,72 @@ export default function ResultsPage() {
               </div>
 
               {/* Modal Content */}
-              <div className="flex-1 overflow-y-auto">
-                <div className="px-6 py-4">
-                  {loadingDetails ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="text-center">
-                        <svg
-                          className="animate-spin h-8 w-8 text-gray-400 mx-auto mb-4"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        <p className="text-gray-500">
-                          Loading attempt details...
-                        </p>
-                      </div>
+              <div className="px-6 py-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                      Full Name
+                    </label>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {selectedAttempt.profiles.full_name}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                      Email
+                    </label>
+                    <p className="text-gray-900">
+                      {selectedAttempt.profiles.email}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                      Phone
+                    </label>
+                    <p className="text-gray-900">
+                      {selectedAttempt.profiles.phone || "-"}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                        Score
+                      </label>
+                      <p className="text-2xl font-bold text-green-600">
+                        {selectedAttempt.total_score}
+                      </p>
                     </div>
-                  ) : (
-                    <>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                        Question Details
-                      </h4>
-                      <div className="space-y-3">
-                        {selectedAttempt.answers.map((answer, index) => (
-                          <div
-                            key={index}
-                            className="border border-gray-200 rounded-md p-3"
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <p className="font-medium text-gray-900 flex-1 text-sm leading-snug">
-                                Q{index + 1}: {answer.question}
-                              </p>
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-xs font-medium ml-3 flex-shrink-0 ${
-                                  answer.marks_obtained > 0
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {answer.marks_obtained > 0 ? "✓" : "✗"}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center space-x-4">
-                                <div>
-                                  <span className="text-gray-500">
-                                    Selected:
-                                  </span>
-                                  <span
-                                    className={`ml-1 font-medium ${
-                                      answer.selected_option !== null
-                                        ? "text-blue-600"
-                                        : "text-red-600"
-                                    }`}
-                                  >
-                                    {answer.selected_option !== null
-                                      ? `Option ${String.fromCharCode(
-                                          65 + answer.selected_option
-                                        )}`
-                                      : "Not answered"}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">
-                                    Correct:
-                                  </span>
-                                  <span className="ml-1 font-medium text-green-600">
-                                    Option{" "}
-                                    {String.fromCharCode(
-                                      65 + answer.correct_answer
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                        Time Taken
+                      </label>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {formatTimeTaken(selectedAttempt.time_taken)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                      Submitted At
+                    </label>
+                    <p className="text-gray-900">
+                      {formatDateTime(selectedAttempt.submitted_at)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
       </main>
+
+      {/* Click outside to close export menu */}
+      {showExportMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowExportMenu(false)}
+        ></div>
+      )}
     </div>
   );
 }

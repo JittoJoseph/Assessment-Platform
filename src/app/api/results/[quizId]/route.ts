@@ -46,14 +46,17 @@ export async function GET(
         id,
         total_score,
         submitted_at,
+        time_taken,
         profiles!inner (
           full_name,
-          email
+          email,
+          phone
         )
       `)
       .eq("quiz_id", quizId)
       .eq("is_completed", true)
       .order("total_score", { ascending: false })
+      .order("time_taken", { ascending: true, nullsFirst: false })
       .range(offset, offset + limit - 1);
 
     if (attemptsError) {

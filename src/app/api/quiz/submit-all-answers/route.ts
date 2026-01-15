@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   const supabase = createClient()
 
-  const { attempt_id, answers, user_id } = await request.json()
+  const { attempt_id, answers, user_id, time_taken } = await request.json()
 
   // Validate input
   if (!user_id) {
@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
       submitted_at: new Date().toISOString(),
       total_score: totalScore,
       is_completed: true,
+      time_taken: typeof time_taken === 'number' ? time_taken : null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', attempt_id)

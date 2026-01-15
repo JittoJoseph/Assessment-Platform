@@ -45,6 +45,7 @@ export default function TakeQuizPage() {
   const [answersReady, setAnswersReady] = useState(false);
   const [isTranslated, setIsTranslated] = useState(false);
   const [translateLoading, setTranslateLoading] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0); // Time elapsed in seconds
 
   // Clear any existing translation cookies on mount to prevent auto-translation
   useEffect(() => {
@@ -209,10 +210,44 @@ export default function TakeQuizPage() {
 
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
+  // Get or set persistent start time in localStorage (never resets on reload)
+  const getStartTime = useCallback((): number => {
+    const key = `quiz_start_time_${params.attemptId}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return parseInt(stored, 10);
+    }
+    const now = Date.now();
+    localStorage.setItem(key, now.toString());
+    return now;
+  }, [params.attemptId]);
+
+  // Calculate time taken in seconds from start time
+  const calculateTimeTaken = useCallback((): number => {
+    const startTime = getStartTime();
+    return Math.floor((Date.now() - startTime) / 1000);
+  }, [getStartTime]);
+
   // Initialize quiz
   useEffect(() => {
     initializeQuiz();
   }, [params.attemptId]);
+
+  // Update elapsed time every second (for display purposes)
+  useEffect(() => {
+    if (!loading && quiz && !completed) {
+      // Initialize start time on first load
+      getStartTime();
+
+      const updateElapsed = () => {
+        setElapsedTime(calculateTimeTaken());
+      };
+
+      updateElapsed();
+      const interval = setInterval(updateElapsed, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [loading, quiz, completed, getStartTime, calculateTimeTaken]);
 
   // Check quiz end time and update timer
   useEffect(() => {
@@ -355,6 +390,10 @@ export default function TakeQuizPage() {
         answersToSubmit = Object.values(answers);
       }
       const answersArray = answersToSubmit;
+
+      // Calculate time taken from persistent start time
+      const timeTaken = calculateTimeTaken();
+
       const response = await fetch("/api/quiz/submit-all-answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -362,6 +401,7 @@ export default function TakeQuizPage() {
           attempt_id: params.attemptId,
           answers: answersArray,
           user_id: user?.id,
+          time_taken: timeTaken,
         }),
       });
 
@@ -371,8 +411,9 @@ export default function TakeQuizPage() {
       }
 
       setCompleted(true);
-      // Clear saved answers
+      // Clear saved answers and start time
       localStorage.removeItem(`quiz_answers_${params.attemptId}`);
+      localStorage.removeItem(`quiz_start_time_${params.attemptId}`);
       router.push(`/quiz/complete/${params.attemptId}`);
     } catch (err: any) {
       setError("Failed to submit quiz");
@@ -470,26 +511,48 @@ export default function TakeQuizPage() {
                   </svg>
                 </Link>
 
-                {/* Prominent Time Left */}
-                <div className="flex-1 text-center px-4">
-                  <div className="text-lg font-mono font-bold text-red-600">
-                    {(() => {
-                      const totalSeconds = Math.floor(timeRemaining / 1000);
-                      const hours = Math.floor(totalSeconds / 3600);
-                      const minutes = Math.floor((totalSeconds % 3600) / 60);
-                      const seconds = totalSeconds % 60;
+                {/* Prominent Time Left and Elapsed */}
+                <div className="flex-1 flex justify-center gap-4 px-2">
+                  <div className="text-center">
+                    <div className="text-base font-mono font-bold text-red-600">
+                      {(() => {
+                        const totalSeconds = Math.floor(timeRemaining / 1000);
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const seconds = totalSeconds % 60;
 
-                      if (hours > 0) {
-                        return `${hours}h ${minutes}m ${seconds}s`;
-                      } else if (minutes > 0) {
-                        return `${minutes}m ${seconds}s`;
-                      } else {
-                        return `${seconds}s`;
-                      }
-                    })()}
+                        if (hours > 0) {
+                          return `${hours}h ${minutes}m ${seconds}s`;
+                        } else if (minutes > 0) {
+                          return `${minutes}m ${seconds}s`;
+                        } else {
+                          return `${seconds}s`;
+                        }
+                      })()}
+                    </div>
+                    <div className="text-xs text-gray-500 font-medium">
+                      LEFT
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 font-medium">
-                    TIME LEFT
+                  <div className="text-center">
+                    <div className="text-base font-mono font-bold text-gray-700">
+                      {(() => {
+                        const hours = Math.floor(elapsedTime / 3600);
+                        const minutes = Math.floor((elapsedTime % 3600) / 60);
+                        const seconds = elapsedTime % 60;
+
+                        if (hours > 0) {
+                          return `${hours}h ${minutes}m ${seconds}s`;
+                        } else if (minutes > 0) {
+                          return `${minutes}m ${seconds}s`;
+                        } else {
+                          return `${seconds}s`;
+                        }
+                      })()}
+                    </div>
+                    <div className="text-xs text-gray-500 font-medium">
+                      ELAPSED
+                    </div>
                   </div>
                 </div>
 
@@ -534,25 +597,47 @@ export default function TakeQuizPage() {
               </div>
 
               {/* Prominent Time Left in Center */}
-              <div className="flex-1 text-center px-8">
-                <div className="text-xl font-mono font-bold text-red-600">
-                  {(() => {
-                    const totalSeconds = Math.floor(timeRemaining / 1000);
-                    const hours = Math.floor(totalSeconds / 3600);
-                    const minutes = Math.floor((totalSeconds % 3600) / 60);
-                    const seconds = totalSeconds % 60;
+              <div className="flex-1 flex justify-center gap-8 px-8">
+                <div className="text-center">
+                  <div className="text-xl font-mono font-bold text-red-600">
+                    {(() => {
+                      const totalSeconds = Math.floor(timeRemaining / 1000);
+                      const hours = Math.floor(totalSeconds / 3600);
+                      const minutes = Math.floor((totalSeconds % 3600) / 60);
+                      const seconds = totalSeconds % 60;
 
-                    if (hours > 0) {
-                      return `${hours}h ${minutes}m ${seconds}s`;
-                    } else if (minutes > 0) {
-                      return `${minutes}m ${seconds}s`;
-                    } else {
-                      return `${seconds}s`;
-                    }
-                  })()}
+                      if (hours > 0) {
+                        return `${hours}h ${minutes}m ${seconds}s`;
+                      } else if (minutes > 0) {
+                        return `${minutes}m ${seconds}s`;
+                      } else {
+                        return `${seconds}s`;
+                      }
+                    })()}
+                  </div>
+                  <div className="text-xs text-gray-500 font-medium">
+                    TIME LEFT
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 font-medium">
-                  TIME LEFT
+                <div className="text-center">
+                  <div className="text-xl font-mono font-bold text-gray-700">
+                    {(() => {
+                      const hours = Math.floor(elapsedTime / 3600);
+                      const minutes = Math.floor((elapsedTime % 3600) / 60);
+                      const seconds = elapsedTime % 60;
+
+                      if (hours > 0) {
+                        return `${hours}h ${minutes}m ${seconds}s`;
+                      } else if (minutes > 0) {
+                        return `${minutes}m ${seconds}s`;
+                      } else {
+                        return `${seconds}s`;
+                      }
+                    })()}
+                  </div>
+                  <div className="text-xs text-gray-500 font-medium">
+                    ELAPSED
+                  </div>
                 </div>
               </div>
 
