@@ -27,7 +27,7 @@ export default function Navbar({ user }: NavbarProps) {
       });
 
       if (response.ok) {
-        window.location.href = "/";
+        window.location.href = "/logout";
       }
     } catch (error) {
       console.error("Logout failed:", error);
