@@ -19,6 +19,22 @@ async function getUser() {
   }
 }
 
+async function getUserRole(userId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching user role:", error);
+    return null;
+  }
+
+  return data?.role;
+}
+
 async function getQuizzes() {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -37,7 +53,10 @@ export default async function AdminDashboard() {
     redirect("/auth");
   }
 
-  if (user.role !== "admin") {
+  // Get current role from database instead of relying on cookie
+  const currentRole = await getUserRole(user.id);
+
+  if (currentRole !== "admin") {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="w-full max-w-md text-center">
