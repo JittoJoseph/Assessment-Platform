@@ -282,14 +282,26 @@ export default function ManageQuestions() {
               <span className="text-sm text-gray-600 hidden sm:block">
                 Welcome, {user?.full_name}
               </span>
-              <form action="/api/auth/logout" method="POST" className="inline">
-                <button
-                  type="submit"
-                  className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
-                >
-                  Logout
-                </button>
-              </form>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch("/api/auth/logout", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                      },
+                    });
+                    if (response.ok) {
+                      window.location.href = "/logout";
+                    }
+                  } catch (error) {
+                    console.error("Logout failed:", error);
+                  }
+                }}
+                className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

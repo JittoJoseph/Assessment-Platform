@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import QuizCard from "./QuizCard";
 import AdminManagement from "./AdminManagement";
+import LogoutButton from "@/components/LogoutButton";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -97,14 +98,7 @@ export default async function AdminDashboard() {
               <span className="text-sm text-gray-600 hidden sm:block">
                 Welcome, {user.full_name}
               </span>
-              <form action="/api/auth/logout" method="POST" className="inline">
-                <button
-                  type="submit"
-                  className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
-                >
-                  Logout
-                </button>
-              </form>
+              <LogoutButton className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm" />
             </div>
           </div>
         </div>
