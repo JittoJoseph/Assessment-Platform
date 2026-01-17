@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { FaLock, FaLink, FaChartBar } from "react-icons/fa";
 import Navbar from "./Navbar";
 import Footer from "../components/Footer";
+import { createClient } from "@/lib/supabase-client";
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -12,7 +13,20 @@ async function getUser() {
   if (!userCookie) return null;
 
   try {
-    return JSON.parse(userCookie);
+    const cookieUser = JSON.parse(userCookie);
+    const supabase = createClient();
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("role, full_name, email, id")
+      .eq("id", cookieUser.id)
+      .single();
+
+    if (error || !profile) return null;
+
+    return {
+      ...cookieUser,
+      role: profile.role,
+    };
   } catch {
     return null;
   }
@@ -40,12 +54,21 @@ export default async function Home() {
           </p>
 
           <div className="flex justify-center mb-12">
-            <Link
-              href="/auth"
-              className="bg-black text-white px-8 py-3 rounded-full font-semibold text-base hover:bg-gray-800 transition-colors"
-            >
-              Get started
-            </Link>
+            {!user ? (
+              <Link
+                href="/auth"
+                className="bg-black text-white px-8 py-3 rounded-full font-semibold text-base hover:bg-gray-800 transition-colors"
+              >
+                Get started
+              </Link>
+            ) : user.role === "admin" ? (
+              <Link
+                href="/admin"
+                className="bg-black text-white px-8 py-3 rounded-full font-semibold text-base hover:bg-gray-800 transition-colors"
+              >
+                Admin Panel
+              </Link>
+            ) : null}
           </div>
         </div>
       </main>
