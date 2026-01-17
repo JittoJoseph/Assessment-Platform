@@ -100,8 +100,8 @@ export default function ResultsPage() {
           setLoading(true);
         }
 
-        const limit = filterOption === "all" ? 1000 : filterOption;
-        const offset = (page - 1) * limit;
+        const limit = filterOption === "all" ? 1000 : (filterOption as number);
+        const offset = filterOption === "all" ? (page - 1) * 1000 : 0;
 
         const response = await fetch(
           `/api/results/${quizId}?limit=${limit}&offset=${offset}`,
@@ -771,7 +771,9 @@ export default function ResultsPage() {
                       onClick={() => handleAttemptClick(attempt)}
                     >
                       <td className="px-4 py-3 text-center text-sm text-gray-600">
-                        {index + 1}
+                        {filterOption === "all"
+                          ? (currentPage - 1) * 1000 + index + 1
+                          : index + 1}
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">
@@ -800,13 +802,13 @@ export default function ResultsPage() {
           </div>
 
           {/* Pagination Controls */}
-          {filterOption !== "all" && totalCount > (filterOption as number) && (
+          {filterOption === "all" && totalCount > 1000 && (
             <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">
-                  Showing {(currentPage - 1) * (filterOption as number) + 1} to{" "}
-                  {Math.min(currentPage * (filterOption as number), totalCount)}{" "}
-                  of {totalCount} results
+                  Showing {(currentPage - 1) * 1000 + 1} to{" "}
+                  {Math.min(currentPage * 1000, totalCount)} of {totalCount}{" "}
+                  results
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
@@ -819,9 +821,8 @@ export default function ResultsPage() {
 
                   {/* Page Numbers */}
                   {(() => {
-                    const totalPages = Math.ceil(
-                      totalCount / (filterOption as number),
-                    );
+                    const pageSize = 1000;
+                    const totalPages = Math.ceil(totalCount / pageSize);
                     const pages = [];
                     const maxVisiblePages = 5;
                     let startPage = Math.max(
@@ -859,8 +860,7 @@ export default function ResultsPage() {
                   <button
                     onClick={() => loadResults(currentPage + 1)}
                     disabled={
-                      currentPage ===
-                        Math.ceil(totalCount / (filterOption as number)) ||
+                      currentPage === Math.ceil(totalCount / 1000) ||
                       filterLoading
                     }
                     className="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
