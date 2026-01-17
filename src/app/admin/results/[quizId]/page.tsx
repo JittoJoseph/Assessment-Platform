@@ -55,7 +55,7 @@ export default function ResultsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [filterLoading, setFilterLoading] = useState(false);
   const [selectedAttempt, setSelectedAttempt] = useState<AttemptSummary | null>(
-    null
+    null,
   );
   const [user, setUser] = useState<User | null>(null);
   const [authError, setAuthError] = useState<string>("");
@@ -104,12 +104,12 @@ export default function ResultsPage() {
         const offset = (page - 1) * limit;
 
         const response = await fetch(
-          `/api/results/${quizId}?limit=${limit}&offset=${offset}`
+          `/api/results/${quizId}?limit=${limit}&offset=${offset}`,
         );
 
         if (!response.ok) {
           throw new Error(
-            `Failed to fetch results: ${response.status} ${response.statusText}`
+            `Failed to fetch results: ${response.status} ${response.statusText}`,
           );
         }
 
@@ -127,7 +127,7 @@ export default function ResultsPage() {
         setFilterLoading(false);
       }
     },
-    [quizId, filterOption]
+    [quizId, filterOption],
   );
 
   useEffect(() => {
@@ -190,7 +190,7 @@ export default function ResultsPage() {
   const highestScore = useMemo(
     () =>
       attempts.length > 0 ? Math.max(...attempts.map((a) => a.total_score)) : 0,
-    [attempts]
+    [attempts],
   );
 
   // Export functions
@@ -231,7 +231,7 @@ export default function ResultsPage() {
           row.score,
           `"${row.timeTaken}"`,
           "", // Empty remarks column
-        ].join(",")
+        ].join(","),
       ),
     ].join("\n");
 
@@ -255,7 +255,7 @@ export default function ResultsPage() {
     doc.text(
       `Quiz Results - ${shortlistedOnly ? "Shortlisted" : "All"} Students`,
       14,
-      32
+      32,
     );
     doc.setFontSize(11);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
@@ -286,7 +286,7 @@ export default function ResultsPage() {
     doc.save(
       `${quizName.replace(/[^a-zA-Z0-9]/g, "_")}-results-${
         shortlistedOnly ? "shortlisted" : "all"
-      }.pdf`
+      }.pdf`,
     );
     setShowExportMenu(false);
   };
@@ -306,7 +306,7 @@ export default function ResultsPage() {
                 }),
               ],
               shading: { fill: "EEEEEE" },
-            })
+            }),
         ),
         tableHeader: true,
       }),
@@ -346,9 +346,9 @@ export default function ResultsPage() {
                       color: "CCCCCC",
                     },
                   },
-                })
+                }),
             ),
-          })
+          }),
       ),
     ];
 
@@ -534,8 +534,8 @@ export default function ResultsPage() {
                     filterOption === option
                       ? "bg-black text-white"
                       : filterLoading
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                   }`}
                 >
                   {option === "all" ? "All" : `Top ${option}`}
@@ -770,10 +770,8 @@ export default function ResultsPage() {
                       className="hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => handleAttemptClick(attempt)}
                     >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center w-8 h-8 bg-gray-900 text-white rounded-full text-sm font-semibold">
-                          {index + 1}
-                        </div>
+                      <td className="px-4 py-3 text-center text-sm text-gray-600">
+                        {index + 1}
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">
@@ -822,17 +820,17 @@ export default function ResultsPage() {
                   {/* Page Numbers */}
                   {(() => {
                     const totalPages = Math.ceil(
-                      totalCount / (filterOption as number)
+                      totalCount / (filterOption as number),
                     );
                     const pages = [];
                     const maxVisiblePages = 5;
                     let startPage = Math.max(
                       1,
-                      currentPage - Math.floor(maxVisiblePages / 2)
+                      currentPage - Math.floor(maxVisiblePages / 2),
                     );
                     let endPage = Math.min(
                       totalPages,
-                      startPage + maxVisiblePages - 1
+                      startPage + maxVisiblePages - 1,
                     );
 
                     if (endPage - startPage + 1 < maxVisiblePages) {
@@ -852,7 +850,7 @@ export default function ResultsPage() {
                           } disabled:cursor-not-allowed`}
                         >
                           {i}
-                        </button>
+                        </button>,
                       );
                     }
                     return pages;
